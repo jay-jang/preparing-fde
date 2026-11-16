@@ -1,0 +1,28 @@
+# Standalone Prometheus rules, not a Prometheus Operator custom resource.
+groups:
+  - name: fde-availability
+    rules:
+      - alert: RagFastBudgetBurn
+        expr: |
+          (
+            sum(rate(rag_requests_total{outcome="error"}[1h]))
+            / clamp_min(sum(rate(rag_requests_total[1h])), 0.000001) > 14.4 * 0.001
+          )
+          and
+          (
+            sum(rate(rag_requests_total{outcome="error"}[5m]))
+            / clamp_min(sum(rate(rag_requests_total[5m])), 0.000001) > 14.4 * 0.001
+          )
+          and sum(increase(rag_requests_total[1h])) >= 100
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "RAG availability budget is burning quickly"
+      - alert: RagTelemetryMissing
+        expr: absent_over_time(rag_requests_total[10m])
+        for: 2m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "RAG request telemetry has been absent for 10 minutes"

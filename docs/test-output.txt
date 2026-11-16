@@ -1,0 +1,41 @@
+test_expired_and_replayed_release_fail (test_core.BundleTests.test_expired_and_replayed_release_fail) ... ok
+test_real_signature_verifies (test_core.BundleTests.test_real_signature_verifies) ... ok
+test_signed_path_escape_and_symlink_fail (test_core.BundleTests.test_signed_path_escape_and_symlink_fail) ... ok
+test_tampered_artifact_fails_hash (test_core.BundleTests.test_tampered_artifact_fails_hash) ... ok
+test_tampered_manifest_fails_signature (test_core.BundleTests.test_tampered_manifest_fails_signature) ... ok
+test_abstention_duplicate_keys_and_unknown_fields (test_core.CoreTests.test_abstention_duplicate_keys_and_unknown_fields) ... ok
+test_agent_cannot_supply_identity_or_write_tool (test_core.CoreTests.test_agent_cannot_supply_identity_or_write_tool) ... ok
+test_audit_has_no_raw_identity_and_key_rotation_is_visible (test_core.CoreTests.test_audit_has_no_raw_identity_and_key_rotation_is_visible) ... ok
+test_citation_bound_to_retrieved_version (test_core.CoreTests.test_citation_bound_to_retrieved_version) ... ok
+test_deployment_requires_digest_and_roundtrips_yaml (test_core.CoreTests.test_deployment_requires_digest_and_roundtrips_yaml) ... ok
+test_guard_does_not_claim_to_prove_semantic_support (test_core.CoreTests.test_guard_does_not_claim_to_prove_semantic_support) ... ok
+test_latency_tail_is_checked_per_answerable_slice (test_core.CoreTests.test_latency_tail_is_checked_per_answerable_slice) ... ok
+test_lexical_and_dense_both_contribute (test_core.CoreTests.test_lexical_and_dense_both_contribute) ... ok
+test_pii_minimization_and_masking (test_core.CoreTests.test_pii_minimization_and_masking) ... ok
+test_quality_gate_baseline_and_leak_in_any_slice (test_core.CoreTests.test_quality_gate_baseline_and_leak_in_any_slice) ... ok
+test_quality_gate_cannot_pass_by_always_abstaining (test_core.CoreTests.test_quality_gate_cannot_pass_by_always_abstaining) ... ok
+test_quality_gate_empty_missing_nan_duplicate (test_core.CoreTests.test_quality_gate_empty_missing_nan_duplicate) ... ok
+test_quality_gate_slice_regression_not_hidden_by_average (test_core.CoreTests.test_quality_gate_slice_regression_not_hidden_by_average) ... ok
+test_rrf_order_is_deterministic (test_core.CoreTests.test_rrf_order_is_deterministic) ... ok
+test_schema_migration_preserves_meaning (test_core.CoreTests.test_schema_migration_preserves_meaning) ... ok
+test_unknown_schema_and_fields_fail_closed (test_core.CoreTests.test_unknown_schema_and_fields_fail_closed) ... ok
+test_vector_corruption_is_rejected (test_core.CoreTests.test_vector_corruption_is_rejected) ... ok
+test_changed_payload_at_same_position_fails (test_database.DatabaseTests.test_changed_payload_at_same_position_fails) ... ok
+test_concurrent_redelivery_has_one_effect (test_database.DatabaseTests.test_concurrent_redelivery_has_one_effect) ... ok
+test_corpus_limit_fails_instead_of_silent_truncation (test_database.DatabaseTests.test_corpus_limit_fails_instead_of_silent_truncation) ... ok
+test_duplicate_does_not_double_apply (test_database.DatabaseTests.test_duplicate_does_not_double_apply) ... ok
+test_identity_does_not_leak_between_pooled_requests (test_database.DatabaseTests.test_identity_does_not_leak_between_pooled_requests) ... ok
+test_nested_transaction_cannot_ack_before_outer_commit (test_database.DatabaseTests.test_nested_transaction_cannot_ack_before_outer_commit) ... ok
+test_output_revalidation_rejects_changed_document (test_database.DatabaseTests.test_output_revalidation_rejects_changed_document) ... ok
+test_output_revalidation_rejects_revocation_during_generation (test_database.DatabaseTests.test_output_revalidation_rejects_revocation_during_generation) ... ok
+test_reader_has_no_owner_superuser_or_bypass_privilege (test_database.DatabaseTests.test_reader_has_no_owner_superuser_or_bypass_privilege) ... ok
+test_revocation_and_document_delete_affect_next_request (test_database.DatabaseTests.test_revocation_and_document_delete_affect_next_request) ... ok
+test_rls_applies_before_python_ranking (test_database.DatabaseTests.test_rls_applies_before_python_ranking) ... ok
+test_stale_update_cannot_resurrect_tombstone (test_database.DatabaseTests.test_stale_update_cannot_resurrect_tombstone) ... ok
+test_transaction_rolls_back_if_audit_outbox_fails (test_database.DatabaseTests.test_transaction_rolls_back_if_audit_outbox_fails) ... ok
+test_unmapped_identity_is_not_silently_created (test_database.DatabaseTests.test_unmapped_identity_is_not_silently_created) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 1.523s
+
+OK

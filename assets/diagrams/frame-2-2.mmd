@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant U as Client
+  participant G as Trusted gateway
+  participant D as PostgreSQL RLS
+  participant R as Ranker
+  U->>G: Access token and query
+  G->>G: Verify signature issuer audience expiry
+  G->>D: BEGIN and transaction-local identity
+  D->>D: Tenant and membership role policy
+  D-->>G: Authorized chunks only
+  G->>D: COMMIT clears local identity
+  G->>R: Authorized candidates

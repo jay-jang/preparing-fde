@@ -1,0 +1,10 @@
+flowchart LR
+  U["검증된 사용자와 tenant"] --> A["DB 권한과 문서 ACL"]
+  A --> B["Lexical / BM25"]
+  A --> V["Dense / cosine"]
+  B --> F["RRF 후보 결합"]
+  V --> F
+  F --> R["허용 후보만 rerank"]
+  R --> C["버전과 원문 위치가 있는 context"]
+  C --> L["로컬 LLM"]
+  L --> G["출력 검증과 권한 재확인"]

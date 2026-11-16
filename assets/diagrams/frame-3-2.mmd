@@ -1,0 +1,7 @@
+flowchart LR
+  GW["내부 gateway"] -->|8080| API["RAG API / non-root"]
+  API -->|5432 TLS| DB["PostgreSQL"]
+  API -->|8000 내부 인증| LLM["Local inference"]
+  API -->|4317 TLS| OT["내부 OTel collector"]
+  API -->|53 TCP와 UDP| DNS["내부 DNS"]
+  DENY["그 밖의 ingress와 egress 기본 거부"] -.-> API

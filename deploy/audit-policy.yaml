@@ -1,0 +1,16 @@
+# Control-plane configuration; this is NOT applied as a namespaced workload.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages:
+  - RequestReceived
+rules:
+  # Never include secret bodies or token credentials in API audit logs.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [secrets, configmaps, serviceaccounts/token]
+  - level: Metadata
+    resources:
+      - group: rbac.authorization.k8s.io
+        resources: [roles, rolebindings, clusterroles, clusterrolebindings]
+  - level: Metadata

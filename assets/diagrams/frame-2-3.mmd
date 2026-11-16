@@ -1,0 +1,9 @@
+flowchart LR
+  E["허용 근거와 버전"] --> L["LLM JSON 출력"]
+  L --> S["엄격한 출력 schema"]
+  S --> C["인용 ID와 버전과 원문 대조"]
+  C --> P["현재 권한 재검증"]
+  P --> A["근거가 있는 답변 또는 보류"]
+  L --> T["도구 이름과 인자 검증"]
+  T --> R["read-only search와 호출 deadline"]
+  T -. "write tool 거부" .-> D["별도 승인된 업무 action 경로"]

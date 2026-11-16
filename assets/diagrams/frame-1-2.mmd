@@ -1,0 +1,9 @@
+flowchart LR
+  K["CDC 이벤트"] --> V["계약과 identity 검증"]
+  V --> T["DB 트랜잭션 시작"]
+  T --> D["event ID와 payload hash 확인"]
+  D --> U["더 큰 소스 위치만 상태 갱신"]
+  U --> A["감사 outbox 삽입"]
+  A --> C["COMMIT"]
+  C --> O["consumer offset ACK"]
+  V -. "계약 오류" .-> Q["내구성 있는 격리 저장 후 정책에 따라 처리"]

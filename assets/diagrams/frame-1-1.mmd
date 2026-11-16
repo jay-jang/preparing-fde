@@ -1,0 +1,9 @@
+flowchart LR
+  E["ERP 설비 원장"] --> IM["소스 키와 canonical ID 매핑"]
+  C["정비 API"] --> IM
+  F["PDF와 OCR"] --> Q["문서 버전과 설비 연결 검토"]
+  IM --> A["Asset / Site"]
+  A --> W["WorkOrder / FailureEvent"]
+  Q --> V["EvidenceDocument / Chunk"]
+  W --> V
+  IM -. "불명확한 매칭" .-> H["고객 데이터 담당자 검토"]

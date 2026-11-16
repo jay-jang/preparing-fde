@@ -4,6 +4,18 @@
 
 Prezi 계정에 생성한 프레젠테이션 파일은 아니다. 캔버스 배치와 카메라 경로를 따라 옮길 수 있는 발표 설계안이다. [도식 폴더](assets/diagrams)에는 프레임별 Mermaid 원본과 PNG를 제공한다. 제목과 코드는 Prezi의 편집 가능한 텍스트로 배치한다.
 
+## GitHub Pages
+
+정적 페이지는 전체 발표안, 14개 도식, 프레임별 목차, 접을 수 있는 발표자 노트와 자료 다운로드를 제공한다. 외부 CDN 없이 동작하며, 다음 명령으로 빌드하고 미리 볼 수 있다.
+
+```sh
+.venv/bin/python -m pip install -r requirements-pages.txt
+.venv/bin/python scripts/build_pages.py
+python3 -m http.server 4174 --directory build/pages
+```
+
+소스는 `web/`, 빌드 결과는 Git에서 제외한 `build/pages/`다. GitHub Pages 배포를 지원하는 저장소에서 Settings → Pages의 Source를 GitHub Actions로 설정하고, 저장소 변수 `PAGES_ENABLED`를 `true`로 지정하면 `.github/workflows/pages.yml`이 배포한다. 설정 전에도 build job으로 페이지와 배포 artifact를 검증할 수 있다. 이후 발표안·도식·웹 소스를 `main`에 push하면 자동으로 다시 빌드하고 배포한다. 활성화 후 배포 주소는 `https://jay-jang.github.io/preparing-fde/`다.
+
 ## 실행
 
 Python 3.12, OpenSSL, PostgreSQL server 바이너리가 필요하다. Ubuntu에서는 `python3-venv`, `postgresql` 패키지로 준비할 수 있다. Python 의존성은 다음과 같이 설치한다.

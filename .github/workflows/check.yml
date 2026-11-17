@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: sudo apt-get update -qq && sudo apt-get install -y postgresql
-      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install -r requirements.txt -r requirements-pages.txt
       - run: python scripts/check.py --all
       # Promotion is a distinct job on the internal runner after labelled,
       # versioned results exist. Do not invent a passing report in this job.

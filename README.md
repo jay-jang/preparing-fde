@@ -45,7 +45,7 @@ Python 3.12, OpenSSL, PostgreSQL server 바이너리가 필요하다. Ubuntu에�
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt -r requirements-pages.txt
 .venv/bin/python scripts/check.py --all
 ```
 

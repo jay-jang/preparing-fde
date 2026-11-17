@@ -1,0 +1,24 @@
+flowchart TB
+  subgraph R1["1 가정으로 slot 수 잡기"]
+    direction LR
+    A["λ 0.83 req/s<br/>사례 제안값"] --> S["S 2.4초 가정<br/>a = 2.0 Erlang"]
+    S --> E["Erlang C<br/>P(대기 > 1초)"]
+    E --> C["최소 5 slot<br/>4 slot은 7.6%"]
+  end
+  subgraph R2["2 부하 시험으로 교정하기"]
+    direction LR
+    L["slot 수별<br/>부하 시험"] --> M["대기 · RUNNING<br/>시간 측정"]
+    M --> R["측정 S(c)로<br/>재계산 · 예 6 slot"]
+  end
+  subgraph R3["3 상한을 두고 운영하기"]
+    direction LR
+    D["slot 상한과<br/>대기열 상한 확정"] -. "상한 초과 유입" .-> X["조기 거절 ·<br/>근거 목록만 반환"]
+  end
+  R1 --> R2
+  R2 --> R3
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail
+  linkStyle 5 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R3 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

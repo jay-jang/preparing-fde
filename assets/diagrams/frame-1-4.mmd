@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph R1["1 파서 블록을 구조 단위로 묶기"]
+    direction LR
+    B["PDF 파서 블록<br/>heading·단계·표"] --> U["원자 단위<br/>문단 · 절차 · 표"]
+    U --> P["heading path<br/>5 정비 > 5.2 과열"]
+    U -. "단계 누락 ·<br/>머리글 없는 행" .-> X["파서 손상<br/>ValueError"]
+  end
+  subgraph R2["2 청크 생성과 색인"]
+    direction LR
+    S["같은 절 단위를<br/>예산까지 결합"] --> C["ID · 버전 ·<br/>페이지 구간 · hash"]
+    C --> E["임베딩과 색인<br/>2-1 · 2-4 평가"]
+    S -. "단위가 예산 초과" .-> F["실패 또는<br/>경계 분할 명시"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X,F fail
+  linkStyle 2,5 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

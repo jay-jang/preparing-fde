@@ -28,6 +28,20 @@
     "title": "Level 3 Deep Dive and Code | 스키마 변경과 삭제를 검색까지 전달하기"
   },
   {
+    "frame": "1-4",
+    "source": "frame-1-4.mmd",
+    "png": "frame-1-4.png",
+    "svg": "frame-1-4.svg",
+    "title": "Level 3 Deep Dive and Code | 매뉴얼의 절·표·점검 단계를 끊지 않고 청크로 나누기"
+  },
+  {
+    "frame": "1-5",
+    "source": "frame-1-5.mmd",
+    "png": "frame-1-5.png",
+    "svg": "frame-1-5.svg",
+    "title": "Level 3 Deep Dive and Code | 원천 데이터를 계약으로 검사하고 위반은 격리하기"
+  },
+  {
     "frame": "2-1",
     "source": "frame-2-1.mmd",
     "png": "frame-2-1.png",
@@ -47,6 +61,20 @@
     "png": "frame-2-3.png",
     "svg": "frame-2-3.svg",
     "title": "Level 3 Deep Dive and Code | 환각과 에이전트 권한을 다른 경계에서 통제하기"
+  },
+  {
+    "frame": "2-4",
+    "source": "frame-2-4.mmd",
+    "png": "frame-2-4.png",
+    "svg": "frame-2-4.svg",
+    "title": "Level 3 Deep Dive and Code | 검색 품질을 Hit@k·MRR·nDCG로 고정하고 비교하기"
+  },
+  {
+    "frame": "2-5",
+    "source": "frame-2-5.mmd",
+    "png": "frame-2-5.png",
+    "svg": "frame-2-5.svg",
+    "title": "Level 3 Deep Dive and Code | 에이전트의 쓰기를 초안·승인·멱등 실행으로 나누기"
   },
   {
     "frame": "3-1",
@@ -70,6 +98,20 @@
     "title": "Level 3 Deep Dive and Code | PII를 줄이고 감사 추적을 업무 경계에 남기기"
   },
   {
+    "frame": "3-4",
+    "source": "frame-3-4.mmd",
+    "png": "frame-3-4.png",
+    "svg": "frame-3-4.svg",
+    "title": "Level 3 Deep Dive and Code | SBOM과 VEX로 폐쇄망 안에서 취약점 영향을 판정하기"
+  },
+  {
+    "frame": "3-5",
+    "source": "frame-3-5.mmd",
+    "png": "frame-3-5.png",
+    "svg": "frame-3-5.svg",
+    "title": "Level 3 Deep Dive and Code | 가명처리 키와 서명 키를 회전해도 과거 기록을 검증하기"
+  },
+  {
     "frame": "4-1",
     "source": "frame-4-1.mmd",
     "png": "frame-4-1.png",
@@ -89,6 +131,20 @@
     "png": "frame-4-3.png",
     "svg": "frame-4-3.svg",
     "title": "Level 3 Deep Dive and Code | 장애를 관측하고 복구 가능한 운영으로 전환하기"
+  },
+  {
+    "frame": "4-4",
+    "source": "frame-4-4.mmd",
+    "png": "frame-4-4.png",
+    "svg": "frame-4-4.svg",
+    "title": "Level 3 Deep Dive and Code | canary 판정을 관측 수와 신뢰구간으로 결정하기"
+  },
+  {
+    "frame": "4-5",
+    "source": "frame-4-5.mmd",
+    "png": "frame-4-5.png",
+    "svg": "frame-4-5.svg",
+    "title": "Level 3 Deep Dive and Code | 에러 예산 정책으로 배포 속도와 안정성을 합의하기"
   },
   {
     "frame": "0-2",
@@ -117,5 +173,68 @@
     "png": "frame-5-3.png",
     "svg": "frame-5-3.svg",
     "title": "Level 3 Deep Dive and Code | 용량 계산을 가정에서 측정으로 바꾸기"
+  },
+  {
+    "frame": "5-4",
+    "source": "frame-5-4.mmd",
+    "png": "frame-5-4.png",
+    "svg": "frame-5-4.svg",
+    "title": "Level 2 Topic Cluster | 이해관계자 지도와 결정 기록으로 합의를 남기기"
+  },
+  {
+    "frame": "5-5",
+    "source": "frame-5-5.mmd",
+    "png": "frame-5-5.png",
+    "svg": "frame-5-5.svg",
+    "title": "Level 3 Deep Dive and Code | 타임라인과 blameless postmortem으로 장애 닫기"
+  },
+  {
+    "frame": "5-6",
+    "source": "frame-5-6.mmd",
+    "png": "frame-5-6.png",
+    "svg": "frame-5-6.svg",
+    "title": "Level 3 Deep Dive and Code | 운영 이관 준비도를 날짜가 있는 증적으로 판정하기"
+  },
+  {
+    "frame": "6-1",
+    "source": "frame-6-1.mmd",
+    "png": "frame-6-1.png",
+    "svg": "frame-6-1.svg",
+    "title": "Level 2 Topic Cluster | 한 공장 파일럿을 전 공장으로 넓힐 때 첫 병목 찾기"
+  },
+  {
+    "frame": "6-2",
+    "source": "frame-6-2.mmd",
+    "png": "frame-6-2.png",
+    "svg": "frame-6-2.svg",
+    "title": "Level 3 Deep Dive and Code | ACL 선택도에 따라 근사 검색의 탐색량을 정하기"
+  },
+  {
+    "frame": "6-3",
+    "source": "frame-6-3.mmd",
+    "png": "frame-6-3.png",
+    "svg": "frame-6-3.svg",
+    "title": "Level 3 Deep Dive and Code | 공장별 tenant를 파티션과 RLS로 함께 나누기"
+  },
+  {
+    "frame": "6-4",
+    "source": "frame-6-4.mmd",
+    "png": "frame-6-4.png",
+    "svg": "frame-6-4.svg",
+    "title": "Level 3 Deep Dive and Code | GPU 대기열을 M/M/c로 근사하고 부하 시험으로 교정하기"
+  },
+  {
+    "frame": "6-5",
+    "source": "frame-6-5.mmd",
+    "png": "frame-6-5.png",
+    "svg": "frame-6-5.svg",
+    "title": "Level 3 Deep Dive and Code | embedding 모델 교체를 무중단 재인덱싱으로 전환하기"
+  },
+  {
+    "frame": "6-6",
+    "source": "frame-6-6.mmd",
+    "png": "frame-6-6.png",
+    "svg": "frame-6-6.svg",
+    "title": "Level 3 Deep Dive and Code | 폐쇄망 TCO를 고정비와 질의당 비용으로 나누기"
   }
 ]

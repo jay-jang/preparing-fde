@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph R1["1 허용 집합의 크기와 위치"]
+    direction LR
+    A["RLS가 정한<br/>허용 청크 수"] --> B{"허용 ≤ 5,000"}
+    B -- "예" --> C["정확 검색<br/>fde/retrieval"]
+    B -- "아니오" --> D{"필터가<br/>파티션 키"}
+    D -- "예" --> P["공장 파티션<br/>인덱스만 탐색"]
+  end
+  subgraph R2["2 아니오: 공유 인덱스의 탐색량"]
+    direction LR
+    E["기대 일치<br/>ef_search × 비율"] -- "k 미달 확률 ≤ 1%" --> F["post-filter<br/>iterative off"]
+    E -- "그 밖" --> G["iterative scan<br/>relaxed_order"]
+    G -. "k ÷ 비율 > 20,000" .-> X["오류: 파티션 ·<br/>별도 인덱스"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail

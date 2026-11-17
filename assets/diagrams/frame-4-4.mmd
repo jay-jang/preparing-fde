@@ -1,0 +1,22 @@
+flowchart TB
+  subgraph R1["1 같은 시간대의 두 집단을 센다"]
+    direction LR
+    D["후보 manifest<br/>canary 5% 배포"] --> C["canary · control<br/>같은 window 계수"]
+    C --> W["Wilson 95%<br/>구간 계산"]
+  end
+  subgraph R2["2 checkpoint마다 판정한다"]
+    direction LR
+    L["ACL 누출<br/>0건?"] -- "예" --> N["관측 수<br/>200건 이상?"]
+    N -- "부족" --> K["계속 관측<br/>window 연장"]
+    N -- "충족" --> J["하한 · 상한을<br/>기준과 비교"]
+    J -- "상한 1% 미만" --> P["승격<br/>다음 단계"]
+    J -- "미결" --> K
+    J -. "하한 초과 또는<br/>2,000건 미결" .-> X["rollback<br/>이전 manifest"]
+    L -. "1건 이상" .-> X
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail
+  linkStyle 7,8 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

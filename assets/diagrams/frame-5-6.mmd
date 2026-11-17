@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 증적 수집 · owner · 날짜 · 참조"]
+    direction LR
+    K["runbook 검토<br/>경보 훈련"] --> B["복원 훈련<br/>RTO 60분 이하"]
+    B --> O["온콜 · 접근 검토<br/>알려진 문제"]
+    O --> J["assess()<br/>유효 기간 검사"]
+    B -. "실측 75분" .-> Y["over_limit<br/>복원 재훈련"]
+  end
+  subgraph R2["2 이관 판정 (4-1 D10)"]
+    direction LR
+    T["차단 공백<br/>0건 확인"] --> H["운영 owner<br/>it_ops 인수"]
+    H --> C["주기적 재검토<br/>postmortem 반영"]
+    T -. "차단 공백 3건" .-> X["이관 보류<br/>backlog 등록"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X,Y fail
+  linkStyle 3,6 stroke:#b4483c

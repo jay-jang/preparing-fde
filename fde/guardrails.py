@@ -52,12 +52,16 @@ class ToolBudget:
     The callback must enforce its own I/O timeout from remaining_seconds.
     A deadline checked here cannot interrupt an arbitrary blocking callback.
     """
-    def __init__(self, principal, search, seconds=4.0, calls=2):
-        if not 0 < seconds <= 10 or type(calls) is not int or not 1 <= calls <= 3:
+    def __init__(self, principal, search, seconds=4.0, calls=2, deadline=None):
+        # seconds is a cap inside the 5 s request deadline; deadline (time.monotonic()) is the request's own.
+        if not 0 < seconds <= 5 or type(calls) is not int or not 1 <= calls <= 3:
             raise ValueError('invalid tool budget')
+        now = time.monotonic()
+        if deadline is not None and (type(deadline) not in (int, float) or not now < deadline < now + 3600):
+            raise ValueError('request deadline must be a future time.monotonic() value')
         self.principal = principal
         self.search = search
-        self.deadline = time.monotonic() + seconds
+        self.deadline = now + seconds if deadline is None else min(now + seconds, deadline)
         self.calls = calls
 
     def invoke(self, name, arguments):

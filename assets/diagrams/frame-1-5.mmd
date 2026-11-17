@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 소스별 계약으로 레코드 판정"]
+    direction LR
+    V["ERP · 정비 API<br/>계약 버전 확인"] --> F["필드 검사<br/>형식·enum·단위"]
+    F --> T["시각 검사<br/>지연은 경고"]
+    V -. "모르는 버전·필드" .-> S["SchemaBreak<br/>ACK 없이 중단"]
+    F -. "값 위반" .-> Q["격리 저장<br/>원문·사유·위치"]
+    T -. "미래 시각" .-> Q
+  end
+  subgraph R2["2 수용 · 계약 개정 · replay"]
+    direction LR
+    RV["owner 승인<br/>계약 revision"] --> RP["원래 수집 시각<br/>으로 replay"]
+    RP --> AC["수용 기록<br/>1-2 멱등 수집"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class S,Q fail
+  linkStyle 2,3,4 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

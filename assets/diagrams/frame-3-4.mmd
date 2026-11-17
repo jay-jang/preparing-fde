@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 서명된 반입 묶음의 판정 (3-1)"]
+    direction LR
+    SB["CycloneDX SBOM<br/>purl@version"] --> M["purl 일치와<br/>SemVer 범위 판정"]
+    FD["오프라인 OSV feed<br/>공개일·severity"] --> M
+    M -. "SemVer 아닌 범위" .-> U["unevaluated<br/>추측하지 않음"]
+  end
+  subgraph R2["2 VEX 적용과 기한"]
+    direction LR
+    VX["VEX 진술<br/>CISA status"] --> S["finding 상태<br/>VEX 우선 적용"]
+    S --> D["공개일 + N일<br/>severity 기한"]
+    D --> G["기한 초과 시<br/>release 차단"]
+    VX -. "근거 없는 진술" .-> X["진술 거부<br/>ValueError"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class U,X fail
+  linkStyle 2,6 stroke:#b4483c

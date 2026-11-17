@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 모델은 근거 있는 초안까지"]
+    direction LR
+    E["검색된 근거<br/>chunk · version"] --> M["로컬 LLM<br/>초안 tool만"]
+    M --> D["WorkOrder 초안<br/>인용 · digest"]
+    M -. "쓰기 tool 호출" .-> N["거부<br/>2-3 ToolBudget"]
+  end
+  subgraph R2["2 사람 승인과 한 번의 실행"]
+    direction LR
+    A["승인자 role ·<br/>요청자와 다름"] --> P["digest 승인<br/>만료 30분"]
+    P --> X["execute<br/>key · 예상 버전"]
+    X --> W["정비 시스템 1회 기록<br/>재시도는 같은 결과"]
+    X -. "다른 payload ·<br/>버전 불일치" .-> C["충돌 · 거부<br/>저장 안 함"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class N,C fail
+  linkStyle 2,6 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

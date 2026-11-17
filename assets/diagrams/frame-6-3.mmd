@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph R1["1 parent 정책으로만 읽기"]
+    direction LR
+    U["gateway<br/>tenant=busan"] --> P["parent chunks<br/>RLS · FORCE"]
+    P --> B["chunks_busan<br/>만 스캔"]
+    P --> S["chunks_ulsan<br/>실행 초기화 때 제거"]
+    U -. "파티션 직접 조회" .-> G["RLS 없는 파티션<br/>직접 GRANT 시 노출"]
+  end
+  subgraph R2["2 공장 등록과 철수"]
+    direction LR
+    A["add_factory<br/>RLS · 권한 없음"] --> C["unguarded<br/>0건 확인"]
+    C --> D["DETACH<br/>울산 철수"]
+    D --> E["반출 후<br/>DROP TABLE"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class G fail

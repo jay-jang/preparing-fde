@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph R1["1 예산과 소진 속도를 계산한다"]
+    direction LR
+    S["SLO 99.9% · 30일<br/>예산 43.2분"] --> B["burn rate<br/>오류율 ÷ 0.1%"]
+    B --> A["page<br/>14.4배 1h · 5m<br/>6배 6h · 30m"]
+    A -- "느린 소진" --> T["ticket<br/>1배 3d · 6h"]
+  end
+  subgraph R2["2 합의한 정책으로 배포를 정한다"]
+    direction LR
+    N["소진 50% 미만<br/>normal"] -- "50% 소진" --> W["slow<br/>canary 관측 2배"]
+    W -. "예산 초과" .-> F["freeze<br/>P0 수정 · 보안만"]
+    I["단일 장애가<br/>예산 20% 초과"] --> PM["postmortem<br/>P0 action item"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class F fail
+  linkStyle 4 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

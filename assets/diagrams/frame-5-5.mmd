@@ -1,0 +1,21 @@
+flowchart TB
+  subgraph R1["1 출처가 붙은 타임라인 (가정 fixture)"]
+    direction LR
+    I["영향 시작<br/>09:00<br/>지표로 사후 추정"] --> D["탐지<br/>09:07<br/>fast-burn page"]
+    D --> A["확인<br/>09:12<br/>온콜 ack"]
+    A --> M["완화<br/>09:40<br/>근거 검색 제한"]
+    M --> Z["해결<br/>11:05<br/>영향 후 125분"]
+  end
+  subgraph R2["2 등급과 postmortem 종결"]
+    direction LR
+    C["등급 분류<br/>20명 → SEV2"] --> W["회의 기한<br/>2026-12-14"]
+    W --> P["기여 요인별 조치<br/>owner · 기한"]
+    C -. "노출 여부 모름" .-> U["SEV1로 처리<br/>사후 재검토"]
+    P -. "owner · 기한 누락" .-> O["postmortem<br/>미종결"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class U,O fail
+  linkStyle 6,7 stroke:#b4483c

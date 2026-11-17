@@ -14,7 +14,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 # Border colour and node tint per cluster; failure nodes use the shared "fail" class.
 PALETTE = {'0': ('#1b5b49', '#e9f0ea'), '1': ('#356584', '#eaf1f6'), '2': ('#26796d', '#e6f2ef'),
-           '3': ('#7d648d', '#f1edf4'), '4': ('#9b6235', '#f6eee7'), '5': ('#5f7a2a', '#eff3e4')}
+           '3': ('#7d648d', '#f1edf4'), '4': ('#9b6235', '#f6eee7'), '5': ('#5f7a2a', '#eff3e4'),
+           '6': ('#4150a4', '#e8eaf6')}
 
 
 def config(cluster):

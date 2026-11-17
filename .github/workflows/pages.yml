@@ -6,7 +6,7 @@ on:
     paths:
       - 'web/**'
       - 'scripts/build_pages.py'
-      - 'scripts/deck.py'
+      - 'scripts/atlas.py'
       - 'scripts/build_kit.py'
       - 'requirements-pages.txt'
       - 'docs/fde-prezi-ko.md'

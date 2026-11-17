@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 누가 무엇을 결정하는가"]
+    direction LR
+    S["이해관계자 지도<br/>역할 · 담당자"] --> M["업무 영역별 RACI<br/>A 정확히 1명"]
+    M --> L["결정 기록 DR-001<br/>상태 · 날짜 · 승인"]
+    L --> N["바뀐 결정은<br/>새 기록이 대체"]
+    M -. "A 2명 · A 공석" .-> X["결정 보류<br/>권한자에게 상향"]
+  end
+  subgraph R2["2 검사 결과를 일정과 운영으로"]
+    direction LR
+    V["review()<br/>finding 목록"] --> P["4-1 임계경로<br/>owner 확보"]
+    P --> G["5-5 장애 대응<br/>5-6 운영 이관"]
+    V -. "끊긴 대체 사슬" .-> Y["기록 수리 후<br/>재검사"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X,Y fail
+  linkStyle 3,6 stroke:#b4483c

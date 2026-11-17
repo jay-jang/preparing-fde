@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 월 고정비를 정수 원으로 합산"]
+    direction LR
+    H["서버 상각 · 전력<br/>× PUE · 지원 계약"] --> N["서버 1대<br/>3,216,000원"]
+    N --> F["월 고정비<br/>5,216,000원"]
+    T["운영 인력 몫<br/>2,000,000원"] --> F
+  end
+  subgraph R2["2 GPU-초로 서버 수, 답변 수로 단가"]
+    direction LR
+    G["GPU busy 시간<br/>÷ 답변 수"] --> U["답변당 GPU-초<br/>0.5 가정"]
+    U --> S["이용률 상한 0.5<br/>안의 서버 수"]
+    S --> C["월 고정비 ÷ 답변 수<br/>10만 건 52.16원"]
+    S -. "상한 초과" .-> X["서버 추가와<br/>6-4 대기 재계산"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail
+  linkStyle 6 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

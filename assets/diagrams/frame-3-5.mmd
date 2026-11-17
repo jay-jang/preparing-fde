@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 회전 계획과 새 기록 (제안값)"]
+    direction LR
+    P["cryptoperiod<br/>365일"] --> L["활성화 14일 전<br/>전 replica 배포"]
+    L --> A["active 키 1개<br/>새 가명·서명"]
+    A -. "회전 뒤 옛 키 사용" .-> S["옛 키 사용 거부<br/>stale replica"]
+  end
+  subgraph R2["2 과거 기록 검증과 파기"]
+    direction LR
+    E["기록의 key ID<br/>event 시각"] --> K["당시 active 키<br/>verify-only"]
+    K --> V["가명 재계산<br/>compare_digest"]
+    V --> Z["보관 365일 후<br/>키 파기"]
+    E -. "당시 비활성 키" .-> X["ValueError<br/>기록 거부"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class S,X fail
+  linkStyle 2,6 stroke:#b4483c

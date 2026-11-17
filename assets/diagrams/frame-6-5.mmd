@@ -1,0 +1,24 @@
+flowchart TB
+  subgraph R1["1 green 구축과 따라잡기"]
+    direction LR
+    P["snapshot<br/>source 위치 기록"] --> B["새 embedding으로<br/>green 구축"]
+    B --> C["snapshot 이후<br/>변경 replay<br/>삭제 · ACL 포함"]
+  end
+  subgraph R2["2 같은 source 위치에서 검증"]
+    direction LR
+    N["live와<br/>tombstone 개수"] --> V["chunk별 parity<br/>version · ACL"]
+    V --> G["4-2 평가 gate<br/>green digest"]
+    G -. "불일치 · 미달" .-> X["전환 중단<br/>수정 후 재검증"]
+  end
+  subgraph R3["3 원자 전환과 rollback 창"]
+    direction LR
+    S["alias 원자 전환"] --> K["blue도 계속 갱신<br/>창 종료 후 폐기"]
+  end
+  R1 --> R2
+  R2 --> R3
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail
+  linkStyle 4 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R3 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

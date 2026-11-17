@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph R1["1 청크와 무관한 라벨로 채점"]
+    direction LR
+    Q["질의 슬라이스<br/>코드형 · 의미형"] --> L["정답 구간 라벨<br/>문서·버전·절·쪽"]
+    L --> M["top-k 청크와<br/>구간 겹침 판정"]
+    M --> S["질의별 Hit · RR<br/>Recall · nDCG"]
+    M -. "구버전 · 다른 절" .-> X["불일치<br/>이득 0"]
+  end
+  subgraph R2["2 슬라이스와 짝 비교로 판정"]
+    direction LR
+    A["슬라이스별<br/>평균과 표본 수"] --> B["같은 질의 짝<br/>bootstrap 구간"]
+    B --> G["4-2 승격 게이트<br/>슬라이스 기준"]
+    A -. "전체 평균만 확인" .-> H["의미형 회귀<br/>숨김"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X,H fail
+  linkStyle 3,6 stroke:#b4483c
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

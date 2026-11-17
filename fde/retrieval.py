@@ -80,19 +80,27 @@ def rank(query, vector, chunks, k=5, window=50):
     return [by_id[key] for key in ids]
 
 
-def retrieve(conn, principal: Principal, query: str, vector, model: str, cap=5000):
+def statement_timeout(timeout_ms):
+    """The caller passes the request's remaining milliseconds; 2,000 ms is only the outer cap."""
+    if type(timeout_ms) is not int or not 1 <= timeout_ms <= 2000:
+        raise ValueError('timeout_ms must be an int from 1 to 2000 (the remaining request time)')
+    return f'SET LOCAL statement_timeout = {timeout_ms}'
+
+
+def retrieve(conn, principal: Principal, query: str, vector, model: str, cap=5000, timeout_ms=2000):
     """Non-owner fde_reader connection, no browser-supplied roles or tenant.
 
     conn.transaction() also scopes set_config(..., true) to the transaction;
     pooled sessions therefore do not retain identity settings after commit.
     """
+    timeout = statement_timeout(timeout_ms)
     if (not conn.autocommit or conn.info.transaction_status != TransactionStatus.IDLE
             or type(cap) is not int or not 1 <= cap <= 5000):
         raise ValueError('use an idle autocommit connection and a bounded cap')
     if not principal.tenant or not principal.subject or not query.strip() or len(query) > 2000:
         raise ValueError('invalid request')
     with conn.transaction():
-        conn.execute("SET LOCAL statement_timeout = '2s'")
+        conn.execute(timeout)
         conn.execute("SELECT set_config('app.tenant',%s,true)", (principal.tenant,))
         conn.execute("SELECT set_config('app.subject',%s,true)", (principal.subject,))
         rows = conn.execute(
@@ -106,18 +114,19 @@ def retrieve(conn, principal: Principal, query: str, vector, model: str, cap=500
     return rank(query, vector, chunks)
 
 
-def revalidate_evidence(conn, principal: Principal, evidence: list[Chunk], model: str):
+def revalidate_evidence(conn, principal: Principal, evidence: list[Chunk], model: str, timeout_ms=2000):
     """Fresh READ COMMITTED statement before emitting an answer; no response cache.
 
     This bounds the revocation window but cannot make a network response atomic
     with a concurrent policy change. The caller also bounds request lifetime.
     """
+    timeout = statement_timeout(timeout_ms)
     if (not conn.autocommit or conn.info.transaction_status != TransactionStatus.IDLE
             or not 1 <= len(evidence) <= 5 or len({c.id for c in evidence}) != len(evidence)):
         raise ValueError('invalid evidence revalidation request')
     with conn.transaction():
         conn.execute('SET TRANSACTION ISOLATION LEVEL READ COMMITTED')
-        conn.execute("SET LOCAL statement_timeout = '2s'")
+        conn.execute(timeout)
         conn.execute("SELECT set_config('app.tenant',%s,true)", (principal.tenant,))
         conn.execute("SELECT set_config('app.subject',%s,true)", (principal.subject,))
         rows = conn.execute(

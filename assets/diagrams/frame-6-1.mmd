@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph R1["1 파일럿 수치를 확장 규모로 투영"]
+    direction LR
+    P["파일럿 1개 공장<br/>측정 · 가정 수치"] --> G["공장 ×10<br/>역할 범위 배수"]
+    G --> J["예상치 ÷ 한도<br/>사용률 순 정렬"]
+    L["한도 근거<br/>설계 · 계산 · 가정"] --> J
+  end
+  subgraph R2["2 첫 병목부터 다음 프레임으로"]
+    direction LR
+    E["정확 검색<br/>40,000 / 5,000"] --> I["수집 버스트(건/초)<br/>5,000 / 2,000"]
+    I --> Q["GPU sequence<br/>42 / 26 · 6-4"]
+    Q --> V["원시 벡터 · 감사<br/>한도 이내"]
+    E -. "설계 한도 초과" .-> X["6-2 필터 검색<br/>6-3 공장 파티션"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class X fail

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 import unittest
 
 import yaml
@@ -15,7 +16,7 @@ from fde.guardrails import ToolBudget, validate_answer
 from fde.ingestion import Event
 from fde.privacy import audit_record, mask_contact_fields, mask_known_patterns
 from fde.release_gate import evaluate
-from fde.retrieval import Chunk, Principal, bm25, cosine, rank
+from fde.retrieval import Chunk, Principal, bm25, cosine, rank, retrieve, statement_timeout
 
 
 class CoreTests(unittest.TestCase):
@@ -90,6 +91,27 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(calls[0][0], principal)
         with self.assertRaises(TimeoutError):
             agent.invoke('search', {'query': 'pump'})
+
+    def test_tool_budget_stays_inside_the_request_deadline(self):
+        principal = Principal('acme', 'alice')
+        for seconds in (0, 5.5, 10):
+            with self.assertRaises(ValueError):
+                ToolBudget(principal, lambda *_: [], seconds=seconds)
+        now = time.monotonic()
+        agent = ToolBudget(principal, lambda *_: [], seconds=4.0, deadline=now + 0.25)
+        self.assertLessEqual(agent.deadline, now + 0.25)
+        for deadline in (now - 1, '5', float('nan')):
+            with self.assertRaises(ValueError):
+                ToolBudget(principal, lambda *_: [], deadline=deadline)
+
+    def test_statement_timeout_follows_the_remaining_request_time(self):
+        self.assertEqual(statement_timeout(250), 'SET LOCAL statement_timeout = 250')
+        self.assertEqual(statement_timeout(2000), 'SET LOCAL statement_timeout = 2000')
+        for value in (0, 2001, 250.0, '250', True):
+            with self.assertRaises(ValueError):
+                statement_timeout(value)
+        with self.assertRaises(ValueError):  # checked before the connection is touched
+            retrieve(None, Principal('acme', 'alice'), 'pump', (1.0, 0.0), 'm', timeout_ms=0)
 
     def test_pii_minimization_and_masking(self):
         record = mask_contact_fields({'asset_id': '00000000-0000-0000-0000-000000000001',

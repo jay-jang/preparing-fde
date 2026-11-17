@@ -28,21 +28,25 @@ OVERVIEW = {'x': 0, 'y': 0, 'w': 2 * (23000 + PLANET_R), 'h': 2 * (10000 + PLANE
 PLANETS = {
     1: {'name': '데이터 통합과 온톨로지', 'en': 'Ingestion & Ontology', 'part': 1,
         'tagline': '같은 설비를 같은 객체로, 재전송에도 같은 상태로', 'outcome': '재생 가능한 상태',
+        'proof': '재전송·역순·삭제에도 같은 상태 (1-2, 1-3)',
         'at': (-12000, -10000), 'rot': -7},
     2: {'name': 'RAG와 에이전트', 'en': 'Retrieval, Grounding & Agents', 'part': 1,
         'tagline': '허용된 근거 안에서 찾고, 출처를 검증해 답한다', 'outcome': '허용된 근거',
+        'proof': 'RLS 안 검색과 버전 맞는 인용만 (2-1~2-3)',
         'at': (12000, -10000), 'rot': 6},
     3: {'name': '폐쇄망과 거버넌스', 'en': 'Air-gap & Governance', 'part': 1,
         'tagline': '인터넷 없이 실행되고, 경계와 기록이 남는 배포', 'outcome': '검증된 실행물',
+        'proof': '서명·digest 반입, 고정된 실행 경계 (3-1, 3-2)',
         'at': (-12000, 10000), 'rot': 5},
     4: {'name': '현장 MVP와 운영', 'en': 'Prototype to Production', 'part': 1,
         'tagline': '작게 증명하고, 게이트를 통과한 범위만 넓힌다', 'outcome': '운영 가능한 책임',
+        'proof': '품질 게이트·burn rate 경보·복구 훈련 (4-2, 4-3)',
         'at': (12000, 10000), 'rot': -6},
     5: {'name': '현장 플레이북', 'en': 'FDE Field Playbook', 'part': 2,
         'tagline': '고객과 합의하고, 재현하고, 넘겨준다', 'outcome': None,
         'at': (-23000, 0), 'rot': -9},
     6: {'name': '규모 확장', 'en': 'Scale-out', 'part': 3,
-        'tagline': '한 공장의 파일럿을 측정으로 전 공장까지 넓힌다', 'outcome': None,
+        'tagline': '한 공장의 파일럿을 측정으로 전\u00a0공장까지 넓힌다', 'outcome': None,
         'at': (23000, 0), 'rot': 8},
 }
 PARTS = {1: '1부 기술 아키텍처', 2: '2부 현장 플레이북', 3: '3부 규모 확장'}
@@ -170,7 +174,7 @@ def text_width(text, font):
 def table_font(rows):
     """Largest font (world px) at which the evidence table fills the data portal without overflowing."""
     inner_w, inner_h = PORTAL_W - 2 * PORTAL_PAD, PORTAL_H - 2 * PORTAL_PAD - 40
-    columns = (inner_w * .26 - 16, inner_w * .42 - 16, inner_w * .32 - 16)
+    columns = (inner_w * .25 - 16, inner_w * .47 - 16, inner_w * .28 - 16)
     for tenth in range(220, 139, -5):
         font = tenth / 10
         height = font * .75 * 1.35 + 12
@@ -210,6 +214,13 @@ def level_tag(level):
 
 # ---------------------------------------------------------------- nodes
 
+def segments(value):
+    """Let a value wrap only between its ' · ' parts; short parts never split ('Recall@5 1.0 → 0.5')."""
+    parts = value.split(' · ')
+    return ' · '.join(f'<span class="seg">{part}</span>' if len(re.sub(r'<[^>]+>', '', part)) <= 28 else part
+                      for part in parts)
+
+
 def basis_kind(basis):
     """code / calc (computed here), source (official link) or proposal (to agree with the customer)."""
     if basis.startswith('코드:'):
@@ -242,7 +253,7 @@ def portal(frame, kind, centre):
     else:
         rows = ''.join(f'<tr class="basis-{basis_kind(row["basis"])}{" key" if "<strong>" in row["item"] else ""}">'
                        f'<th scope="row">{row["item"]}</th>'
-                       f'<td class="value">{row["value"]}</td>'
+                       f'<td class="value">{segments(row["value"])}</td>'
                        f'<td class="basis">{row["basis"]}</td></tr>' for row in frame['data'])
         body = (f'{tag}<table style="font-size:{table_font(frame["data"])}px"><thead><tr><th scope="col">항목</th>'
                 '<th scope="col">값</th><th scope="col">근거</th></tr>'
@@ -288,7 +299,7 @@ def planet_markup(number, frames, positions):
         f'<header class="planet-disc" style="{box_style(PLANET_R, PLANET_R, 2 * DISC_R, 2 * DISC_R)}">'
         f'<span class="pd-part">{number:02d} · {PARTS[planet["part"]]}</span>'
         f'<h2 class="pd-name">{escape(planet["name"])}</h2><p class="pd-en">{escape(planet["en"])}</p>'
-        f'<p class="pd-tagline">{escape(planet["tagline"])}</p>'
+        f'<p class="pd-tagline">{keep_together(planet["tagline"])}</p>'
         f'<p class="pd-meta">프레임 {len(frames)}개 · {minutes}분</p></header>'
         f'{frame_html}</section>')
 
@@ -296,7 +307,8 @@ def planet_markup(number, frames, positions):
 def cover_markup(number):
     """The overview label of a topic. It lives above the route layer, with the planet's own box and tilt."""
     planet = PLANETS[number]
-    outcome = f'<span class="outcome">{escape(planet["outcome"])}</span>' if planet['outcome'] else ''
+    outcome = (f'<span class="outcome">{escape(planet["outcome"])}<small>{escape(planet["proof"])}</small></span>'
+               if planet['outcome'] else '')
     return (f'<div class="planet-cover c{number} part-{planet["part"]}" id="cover-p{number}" aria-hidden="true" '
             f'style="{box_style(planet["at"][0], planet["at"][1], 2 * PLANET_R, 2 * PLANET_R, planet["rot"])}">'
             f'<span class="pc-number">{number:02d}</span><span class="pc-name">{escape(planet["name"])}</span>'
@@ -311,8 +323,8 @@ def hub_markup(by_key):
         'aria-label="표지와 개요">'
         '<header class="hub-title"><p class="hub-eyebrow">FDE 면접 · 온보딩 기술 발표</p>'
         '<h1>고객의 데이터에서,<br><em>운영 가능한 AI까지.</em></h1></header>'
-        '<p class="hub-closing">P-101 답변은 재현되는 상태와 허용된 근거로 만들고,<br>'
-        '<em>검증된 실행물과 운영 책임</em> 위에서만 내보낸다.</p>'
+        '<p class="hub-closing">P-101 답변은 재전송에도 같은 상태와 권한 안의 인용\u00a0근거로 만들고, '
+        '<em>서명된\u00a0실행물과 게이트\u2060·\u2060복구\u00a0훈련</em> 위에서만 내보낸다.</p>'
         '<div class="hub-detail"><p class="hub-question">이 답변을 어떤 데이터와 권한으로 만들었고,<br>'
         '장애가 난 뒤에도 같은 사실을 재현할 수 있는가?</p>'
         '<p class="hub-case"><span>CASE</span>“부산 공장 P-101의 반복 과열 원인과 점검 순서는?”</p></div>'
@@ -397,7 +409,7 @@ def orbit_layer():
                      f'<text class="flow-text {kind}"><textPath href="#flow-{index}" startOffset="50%">'
                      f'{escape(label)}</textPath></text>')
     # Parts 2 and 3 hang off the hub.
-    for number, label in ((5, '2부 · 현장에서 합의하고 지키기'), (6, '3부 · 측정하며 넓히기')):
+    for number, label in ((5, '2부 · 합의하고 지키기'), (6, '3부 · 측정하며 넓히기')):
         x = PLANETS[number]['at'][0]
         sign = 1 if x > 0 else -1
         x0, x1 = sign * (HUB_R + 1500), x - sign * (PLANET_R + 200)
@@ -408,11 +420,12 @@ def orbit_layer():
     return ''.join(parts)
 
 
-def route_layer():
-    """An empty overlay above the planets; atlas.js draws the selected path into it."""
+def route_layer(layer):
+    """Empty path layers atlas.js fills: 'lines' sits under every circle, so the path shows only between
+    topics; 'route' (the stops) sits on top."""
     left, top, width, height = -33000, -24000, 66000, 48000
-    return (f'<svg class="route" id="route" style="left:{left}px;top:{top}px;width:{width}px;height:{height}px" '
-            f'viewBox="{left} {top} {width} {height}" aria-hidden="true"></svg>')
+    return (f'<svg class="route {layer}" id="{layer}" style="left:{left}px;top:{top}px;width:{width}px;'
+            f'height:{height}px" viewBox="{left} {top} {width} {height}" aria-hidden="true"></svg>')
 
 
 # ---------------------------------------------------------------- scene, steps and paths
@@ -420,7 +433,8 @@ def route_layer():
 def scene(frames):
     """World boxes for every camera target and the HTML of the world."""
     by_key = {frame['key']: frame for frame in frames}
-    nodes = {'overview': {**OVERVIEW, 'kind': 'overview'}}
+    nodes = {'overview': {**OVERVIEW, 'kind': 'overview'},
+             'closing': {'x': 0, 'y': 0, 'w': 42000, 'h': 27000, 'rot': 0, 'kind': 'closing'}}
     hub = {'x': 0, 'y': 0, 'rot': 0}
     nodes['hub'] = {**hub, 'w': 2 * HUB_R, 'h': 2 * HUB_R, 'kind': 'hub'}
     placements = {}
@@ -444,7 +458,8 @@ def scene(frames):
             w, h = diagram_box(by_key[key]['diagram']['ratio']) if kind == 'diagram' else (PORTAL_W, PORTAL_H)
             nodes[f'{key}.{kind}'] = {**centre, 'w': round(w, 2), 'h': round(h, 2), 'kind': kind, 'parent': key}
     covers = ''.join(cover_markup(number) for number in PLANETS)
-    world = orbit_layer() + hub_markup(by_key) + ''.join(planet_html) + route_layer() + covers
+    world = (route_layer('route-lines') + orbit_layer() + hub_markup(by_key) + ''.join(planet_html)
+             + covers + route_layer('route'))
     return world, nodes
 
 
@@ -459,7 +474,7 @@ def ordered_keys(frames):
 def steps_and_paths(frames, nodes):
     by_key = {frame['key']: frame for frame in frames}
     steps = [{'id': 'overview', 'kind': 'overview', 'node': 'overview', 'label': '조감도'},
-             {'id': 'closing', 'kind': 'closing', 'node': 'overview', 'label': '네 영역의 결과'},
+             {'id': 'closing', 'kind': 'closing', 'node': 'closing', 'label': '네 영역의 결과'},
              {'id': 'hub', 'kind': 'hub', 'node': 'hub', 'label': '표지 · 중심 질문'}]
     for number, planet in PLANETS.items():
         steps.append({'id': f'p{number}', 'kind': 'planet', 'node': f'p{number}', 'planet': number,
@@ -564,7 +579,8 @@ def render(frames, appendix, render_markdown, revision):
     qa = qa_index(appendix, render_markdown)
     data = {
         'revision': revision,
-        'planets': {str(n): {k: p[k] for k in ('name', 'en', 'tagline', 'outcome', 'part')} for n, p in PLANETS.items()},
+        'planets': {str(n): {k: p.get(k) for k in ('name', 'en', 'tagline', 'outcome', 'proof', 'part')}
+                    for n, p in PLANETS.items()},
         'parts': PARTS,
         'frames': {frame['key']: {
             'title': frame['title'], 'kicker': frame['kicker'], 'label': frame['label'],

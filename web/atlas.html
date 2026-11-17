@@ -81,14 +81,14 @@
         <button type="button" data-action="timer-reset">타이머 초기화</button>
       </div>
       <div class="tabs" role="tablist" aria-label="노트 종류">
-        <button type="button" role="tab" data-tab="speaker">대본</button>
-        <button type="button" role="tab" data-tab="analysis">분석</button>
-        <button type="button" role="tab" data-tab="data">데이터</button>
-        <button type="button" role="tab" data-tab="layout">화면</button>
-        <button type="button" role="tab" data-tab="qa">Q&amp;A</button>
+        <button type="button" role="tab" id="tab-speaker" aria-controls="notes-panel" data-tab="speaker">대본</button>
+        <button type="button" role="tab" id="tab-analysis" aria-controls="notes-panel" data-tab="analysis">분석</button>
+        <button type="button" role="tab" id="tab-data" aria-controls="notes-panel" data-tab="data">데이터</button>
+        <button type="button" role="tab" id="tab-layout" aria-controls="notes-panel" data-tab="layout">화면</button>
+        <button type="button" role="tab" id="tab-qa" aria-controls="notes-panel" data-tab="qa">Q&amp;A</button>
       </div>
     </header>
-    <div class="notes-body" role="tabpanel"></div>
+    <div class="notes-body" id="notes-panel" role="tabpanel" aria-labelledby="tab-speaker"></div>
     <footer class="notes-next"></footer>
   </aside>
 

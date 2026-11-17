@@ -307,6 +307,6 @@ test_sequence_ceiling_is_exact (test_scaleout.ScaleOutTests.test_sequence_ceilin
 test_ten_factories_exact_values (test_scaleout.ScaleOutTests.test_ten_factories_exact_values) ... ok
 
 ----------------------------------------------------------------------
-Ran 306 tests in 4.943s
+Ran 306 tests in 4.941s
 
 OK

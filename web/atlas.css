@@ -72,14 +72,14 @@ kbd{font-family:var(--mono);font-size:.85em;padding:.05em .4em;border:1px solid 
 .arrow.flow{stroke:var(--c2)}.arrow.platform{stroke:var(--c3)}.arrow.feedback{stroke:var(--c4);stroke-dasharray:260 170}
 .arrow.part{stroke:var(--ink-3);stroke-width:60;stroke-dasharray:200 160}
 .head.flow{fill:var(--c2)}.head.platform{fill:var(--c3)}.head.feedback{fill:var(--c4)}.head.part{fill:var(--ink-3)}
-.flow-text{font-size:640px;font-weight:800;dominant-baseline:middle;text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:150;stroke-linejoin:round}
+.flow-text{font-size:760px;font-weight:800;dominant-baseline:middle;text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:150;stroke-linejoin:round}
 .flow-text.flow{fill:var(--c2)}.flow-text.platform{fill:var(--c3)}.flow-text.feedback{fill:var(--c4)}
-.part-text{font-size:600px;font-weight:800;fill:var(--ink-2);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:140}
+.part-text{font-size:720px;font-weight:800;fill:var(--ink-2);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:140}
 .route{opacity:0;transition:opacity .6s}
 .route polyline{fill:none;stroke:var(--accent);stroke-opacity:.6;stroke-width:60;stroke-dasharray:10 150;stroke-linecap:round;stroke-linejoin:round}
 .route rect{fill:var(--accent);stroke:var(--paper);stroke-width:70}
 .route{position:absolute;overflow:visible;pointer-events:none}
-.route text{font-size:620px;font-weight:800;fill:var(--paper);text-anchor:middle;dominant-baseline:central}
+.route text{font-size:740px;font-weight:800;fill:var(--paper);text-anchor:middle;dominant-baseline:central}
 body[data-depth="overview"]:not([data-step="closing"]) .route{opacity:.95}
 .hub-eyebrow,.spine-text{transition:opacity .5s}
 body[data-depth="overview"] :is(.hub-eyebrow,.spine-text){opacity:0}
@@ -91,7 +91,7 @@ body[data-depth="overview"] :is(.hub-eyebrow,.spine-text){opacity:0}
 .hub h1{margin:0;font-size:700px;line-height:1.1;font-weight:800;letter-spacing:-.03em}
 .hub h1 em{font-style:normal;color:var(--c0)}
 .hub-detail{position:absolute;left:1500px;top:3500px;width:8600px;transition:opacity .6s}
-.hub-closing{position:absolute;left:900px;top:1500px;width:9800px;margin:0;font-size:800px;line-height:1.16;font-weight:800;
+.hub-closing{position:absolute;left:1800px;top:1700px;width:8000px;margin:0;font-size:700px;line-height:1.16;text-wrap:balance;font-weight:800;
   letter-spacing:-.03em;opacity:0;transition:opacity .6s}
 .hub-closing em{font-style:normal;color:var(--c0)}
 body[data-step="closing"] .hub-closing{opacity:1}
@@ -108,13 +108,17 @@ body[data-step="closing"] .hub-title,body[data-step="closing"] .hub .frame{opaci
 .planet::after{content:"";position:absolute;inset:260px;border-radius:50%;border:26px dashed color-mix(in srgb,var(--c) 30%,transparent);pointer-events:none}
 .planet-cover{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:150px;
   text-align:center;pointer-events:none;transition:opacity .25s}
-.planet-cover>span{text-shadow:0 0 90px var(--planet),0 0 180px var(--planet),0 0 260px var(--planet)}
+.planet-cover>span:not(.outcome){text-shadow:0 0 90px var(--planet),0 0 180px var(--planet),0 0 260px var(--planet)}
+.pc-number,.pc-name{padding:0 260px;border-radius:900px;background:var(--planet)}
+body[data-depth="overview"]:not([data-step="closing"]) .pc-en{display:none}
 .pc-number{font-size:2300px;line-height:.9;font-weight:800;color:var(--c);letter-spacing:-.04em}
 .pc-name{max-width:12400px;font-size:930px;line-height:1.1;font-weight:800;letter-spacing:-.02em}
 .pc-en{font-size:560px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .outcome{margin-top:120px;padding:160px 440px;border-radius:900px;background:var(--c);color:var(--paper);
   font-size:780px;font-weight:800;opacity:0;transform:translateY(400px);transition:opacity .6s,transform .6s}
 body[data-step="closing"] .outcome{opacity:1;transform:none}
+.outcome small{display:block;margin-top:40px;font-size:.6em;font-weight:600;opacity:.92}
+body[data-step="closing"] .pc-en{display:none}
 .planet-disc{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;
   border-radius:50%;background:var(--t);text-align:center;padding:300px;opacity:0;transition:opacity .55s}
 .pd-part{font-size:300px;font-weight:800;letter-spacing:.14em;color:var(--c)}
@@ -177,12 +181,13 @@ body[data-depth="detail"] .portal.is-focus figcaption{opacity:0}
 .portal table{width:100%;border-collapse:collapse;font-size:15px;line-height:1.35}
 .portal thead th{padding:0 8px 8px;text-align:left;font-size:.73em;letter-spacing:.12em;color:var(--ink-3);border-bottom:2px solid var(--c)}
 .portal tbody th,.portal tbody td{padding:8px;vertical-align:top;text-align:left;border-bottom:1px solid var(--line)}
-.portal tbody th{width:26%;font-weight:600;color:var(--ink-2)}
-.portal td.value{width:42%;font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
+.portal tbody th{width:25%;font-weight:600;color:var(--ink-2)}
+.portal td.value{width:47%;font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
 .portal tr.basis-source td.value{color:var(--ink)}
 .portal tr.basis-proposal td.value{color:var(--ink-2);font-weight:600}
 .portal tr.basis-proposal th{font-weight:400}
 .portal td.basis{font-size:.82em;color:var(--ink-3)}
+.portal .seg{white-space:nowrap}
 .portal tr.key{background:color-mix(in srgb,var(--c) 10%,transparent);box-shadow:inset 4px 0 0 var(--c)}
 .portal tr.key th strong{font-weight:800;color:var(--ink)}
 .portal td a{color:var(--c);text-decoration-thickness:1px;text-underline-offset:2px}
@@ -324,6 +329,8 @@ body.idle #stage{cursor:none}
 #sheet h3{margin:4px 0 8px;font-size:17px;line-height:1.35}
 .sheet-message{margin:0 0 8px;font-size:15px;font-weight:600;line-height:1.5}
 .sheet-points{margin:0 0 10px;padding-left:1.2em;font-size:14px;line-height:1.5;color:var(--ink-2)}
+.sheet-case{margin:0 0 10px;font-size:14px;line-height:1.5}
+.sheet-case b{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:999px;background:var(--c0);color:var(--paper);font-size:11px;letter-spacing:.08em}
 .sheet-links{display:flex;gap:8px}
 .sheet-links button{flex:1;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--frame);font-size:13px;font-weight:800;cursor:pointer}
 .sheet-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}

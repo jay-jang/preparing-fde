@@ -62,8 +62,8 @@ class PresentationTests(unittest.TestCase):
     def test_every_camera_target_exists_once(self):
         ids = Counter(re.findall(r'\sid="([^"]+)"', self.world))
         self.assertEqual([name for name, count in ids.items() if count > 1], [])
-        for node in self.nodes:
-            if node != 'overview':
+        for node, box in self.nodes.items():
+            if box['kind'] not in ('overview', 'closing'):  # camera-only views of the whole canvas
                 self.assertIn('n-' + node.replace('.', '-'), ids, node)
         for step in self.data['steps']:
             self.assertIn(step['node'], self.nodes, step['id'])

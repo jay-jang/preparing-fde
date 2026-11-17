@@ -1565,9 +1565,9 @@ flowchart TB
 - **핵심 고려사항과 평가 분리:** 질문을 정확 코드형, 의미형, 근거 없음, 권한 없음으로 나눈다. 학습·튜닝 질의와 holdout을 분리하고, “근거 있음” 라벨은 답변한 모델 자신의 평점만으로 결정하지 않는다. 자동 출처 검사와 현장 전문가의 claim support 판정을 함께 사용한다.
 - **분모 명시:** Hit@5는 정답 근거를 하나 이상 찾은 질의의 비율이다. 여러 정답 문서 중 얼마나 찾았는지 세는 Recall@5와 구분한다. support rate는 답변한 질의 중 모든 핵심 주장이 근거로 지지된 비율이며, coverage는 답변 가능한 질의 중 실제 답한 비율이다. 무조건 보류해서 support만 높이는 전략을 coverage로 막는다.
 - **작은 표본의 한계:** 슬라이스당 30개는 gate가 빈 자료로 통과하는 일을 막는 최소값이다. 누출 0건 관측이 실제 누출 확률 0을 증명하지는 않는다. 운영 공개 범위와 영향에 따라 표본·공격 케이스·신뢰구간 검토를 확대한다.
-- **승격과 비용:** 표의 기준은 제안값이다. 실제 deadline·토큰 상한을 고정한 상태에서 평가하고, 전체 p95뿐 아니라 답변 가능한 슬라이스의 p95도 검사한다. canary는 예컨대 5%에서 시작하되 최소 관측 수와 시간, 보안·품질·오류 중단 기준을 모두 충족해야 다음 단계로 진행한다.
+- **승격과 비용:** 누출 0건은 협상하지 않는 고정 규칙이고(5-1), 나머지 표의 기준은 제안값이다. 실제 deadline·토큰 상한을 고정한 상태에서 평가하고, 전체 p95뿐 아니라 답변 가능한 슬라이스의 p95도 검사한다. canary는 예컨대 5%에서 시작하되 최소 관측 수와 시간, 보안·품질·오류 중단 기준을 모두 충족해야 다음 단계로 진행한다.
 
-| 게이트 | 제안 기준 | 실패했을 때의 조치 |
+| 게이트 | 기준 (누출 0건만 고정, 나머지는 제안값) | 실패했을 때의 조치 |
 | --- | --- | --- |
 | 코드형·의미형 Hit@5 | 각각 90% 이상 | 청크·분석기·retrieval 조정 후 재평가 |
 | 답변 support rate | 코드형·의미형 각 98% 이상 | context와 생성 정책 점검 |
@@ -1919,7 +1919,7 @@ flowchart BT
 
 | 항목 | 값 | 근거 |
 | --- | --- | --- |
-| 기록된 통합 검사(2026-11-17 실행) | 306 tests · 4.943 s | 코드: scripts/check.py --all · docs/test-output.txt |
+| 기록된 통합 검사(2026-11-17 실행) | 306 tests · 4.941 s | 코드: scripts/check.py --all · docs/test-output.txt |
 | ACL 누출 허용 | 0건 | 코드: fde/release_gate.py |
 | 유형별 응답 p95 상한 | 5,000 ms | 제안값 · fde/release_gate.py에 고정 (고객 합의 후 조정) |
 | 유형별 최소 평가 예제 | 30개 | 제안값 · fde/release_gate.py에 고정 (고객 합의 후 조정) |
@@ -1940,7 +1940,7 @@ test_citation_bound_to_retrieved_version ... ok           # 2 인용
 test_tampered_manifest_fails_signature ... ok             # 3 반입
 test_quality_gate_baseline_and_leak_in_any_slice ... ok   # 4 게이트
 ----------------------------------------------------------------------
-Ran 306 tests in 4.943s
+Ran 306 tests in 4.941s
 
 OK
 ```
@@ -2010,7 +2010,7 @@ flowchart TB
 
 **[실전 코드 (Production-grade Code)]**
 
-아래는 첫 주 Discovery 결과를 정리한 결정 기록과 수용 기준 예시이며, 모든 값은 고객 합의 전의 가정·제안값이다. `acceptance`의 metric 키는 `fde/release_gate.py`가 반환하는 `metrics` 이름과 맞췄고, `min_examples_per_slice`와 `forbidden_answered`는 gate가 metric 없이 직접 검사하는 조건이다.
+아래는 첫 주 Discovery 결과를 정리한 결정 기록과 수용 기준 예시이며, 권한 누출 0건과 권한 없는 질의의 전건 보류를 뺀 모든 값은 고객 합의 전의 가정·제안값이다. `acceptance`의 metric 키는 `fde/release_gate.py`가 반환하는 `metrics` 이름과 맞췄고, `min_examples_per_slice`와 `forbidden_answered`는 gate가 metric 없이 직접 검사하는 조건이다.
 
 ```yaml
 id: "DR-001"
@@ -2027,13 +2027,13 @@ rejected_alternatives:
   - "합성 데이터 데모 통과만으로 승격"
 reason: "원천 책임과 권한 경계를 먼저 고정해야 4-2 게이트로 검증할 수 있다"
 review_when: "공장·설비군 추가, write 기능 요청, role 정책 변경 시"
-acceptance:                    # 모든 값은 제안값
+acceptance:                    # 누출·전건 보류는 고정, 나머지는 제안값
   min_examples_per_slice: 30   # factoid·semantic·unanswerable·forbidden 각각
   factoid: { hit_at_5: 0.90, support_rate: 0.98, coverage: 0.80, p95_ms: 5000 }
   semantic: { hit_at_5: 0.90, support_rate: 0.98, coverage: 0.80, p95_ms: 5000 }
   correct_abstention: 0.95
-  leak_count: 0
-  forbidden_answered: 0        # 권한 없는 질의는 전건 보류
+  leak_count: 0                # 고정 규칙
+  forbidden_answered: 0        # 고정 규칙: 권한 없는 질의는 전건 보류
   p95_ms: 5000
 ```
 
@@ -2366,7 +2366,7 @@ flowchart TB
 | 예제 완화 · 해결 시간 | 2,400 s · 7,500 s | 코드: fde/incident.py · tests/test_incident.py |
 | postmortem 회의 기한 (SEV-1 · SEV-2) | 3 calendar days · 5 business days | [PagerDuty postmortem 절차](https://docs.pagerduty.com/ops-guides/incident-response-guide/postmortem-process) |
 | 예제 SEV2 회의 기한 | 2026-12-14 (해결 후 7일) | 코드: fde/incident.py · tests/test_incident.py |
-| fast-burn 경보의 firing 대기 | 2분 (`for: 2m`) | 코드: deploy/alerts.yaml · tests/test_incident.py |
+| fast-burn 경보의 firing 대기 | 2분 (`for: 2m`) | 제안값 · deploy/alerts.yaml에 고정 (고객 합의 후 조정) |
 | 등급 기준 인원 | SEV1 50명 · SEV2 10명 | 제안값 · fde/incident.py에 고정 (사례의 동시 사용자 50명 기준, 고객 영향 기준으로 조정) |
 
 **[실전 코드 (Production-grade Code)]**

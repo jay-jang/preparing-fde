@@ -12,9 +12,13 @@
   const body = document.body;
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
-  const nodes = data.nodes;
+  const nodes = Object.assign(Object.create(null), data.nodes);
+  data.frames = Object.assign(Object.create(null), data.frames);
   const steps = new Map(data.steps.map((step) => [step.id, step]));
-  const presenter = new URLSearchParams(location.search).has('presenter');
+  const params = new URLSearchParams(location.search);
+  const presenter = params.has('presenter');
+  const opener = params.get('from');  // the deck window that pressed P
+  const tabId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const DETAIL = new Set(['diagram', 'code', 'data']);
   const CONTAINERS = ['hub', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'].filter((id) => nodes[id]);
@@ -22,7 +26,7 @@
     get(key) { try { return localStorage.getItem(key); } catch { return null; } },
     set(key, value) { try { localStorage.setItem(key, value); } catch { /* storage may be blocked */ } },
   };
-  const elementOf = (id) => (id === 'overview' ? null : document.getElementById(`n-${id.replace('.', '-')}`));
+  const elementOf = (id) => (id === 'overview' || id === 'closing' ? null : document.getElementById(`n-${id.replace('.', '-')}`));
   const hasPath = (name) => typeof name === 'string' && Object.hasOwn(data.paths, name);
   const narrowQuery = matchMedia('(max-width: 760px)');
   const FRAMES = Object.keys(data.frames);   // story order
@@ -45,11 +49,20 @@
   let notesKey = '';
   let timerStart = null;
   let remote = false;
-  let clockSynced = false;
   let lastNavigated = 0;
   let settleTimer = 0;
 
   const order = () => data.paths[pathName].steps;
+  const session = {
+    get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
+    set(key, value) { try { sessionStorage.setItem(key, value); } catch { /* storage may be blocked */ } },
+  };
+  // The talk clock survives a reload of this tab, so a reloaded projector never restarts everyone's timer.
+  function setTimer(value) {
+    timerStart = Number.isFinite(value) ? value : null;
+    session.set('fde-timer', timerStart === null ? '' : String(timerStart));
+  }
+  timerStart = Number(session.get('fde-timer')) || null;
   const current = () => steps.get(order()[index]);
 
   // ------------------------------------------------------------ geometry
@@ -183,7 +196,7 @@
   function chain(id) {
     // [container, frame, portal] for a node id.
     const node = nodes[id];
-    if (!node || id === 'overview') return [null, null, null];
+    if (!node || node.kind === 'overview' || node.kind === 'closing') return [null, null, null];
     if (node.kind === 'hub' || node.kind === 'planet') return [id, null, null];
     if (node.kind === 'frame') return [node.parent, id, null];
     return [nodes[node.parent].parent, node.parent, id];
@@ -215,6 +228,15 @@
       return;
     }
     const list = (items) => '<ul class="sheet-list">' + items.join('') + '</ul>';
+    if (id === 'overview' && !detour && current()?.id === 'closing') {
+      $('.sheet-title').textContent = '네 영역의 결과';
+      $('.sheet-body').innerHTML = `<p class="sheet-message">${escapeHtml($('.hub-closing').textContent)}</p>`
+        + '<ol class="sheet-points">' + [1, 2, 3, 4].map((n) =>
+          `<li><strong>${escapeHtml(data.planets[n].outcome)}</strong> · ${escapeHtml(data.planets[n].proof)}</li>`).join('') + '</ol>';
+      sheet.dataset.kind = 'frame';
+      sheet.hidden = false;
+      return;
+    }
     if (id === 'overview') {
       // The overview on a phone: the six topics and the hub as a list under the canvas.
       $('.sheet-title').textContent = 'FDE 캔버스 · 주제';
@@ -245,7 +267,13 @@
       // A topic on a phone: list its frames under the canvas so each one is one tap away.
       const keys = FRAMES.filter((key) => nodes[key]?.parent === id);
       $('.sheet-title').textContent = crumbs(id).slice(-1)[0].label;
-      $('.sheet-body').innerHTML = list(keys.map((key) => {
+      const spaced = (element) => element.innerText.replace(/\s+/g, ' ').trim();
+      const caseQuote = spaced($('.hub-case')).replace(/^CASE\s*/, '');
+      const intro = id === 'hub'
+        ? `<p class="sheet-message">${escapeHtml(spaced($('.hub-question')))}</p>`
+          + `<p class="sheet-case"><b>CASE</b> ${escapeHtml(caseQuote)}</p>`
+        : '';
+      $('.sheet-body').innerHTML = intro + list(keys.map((key) => {
         const frame = data.frames[key];
         return `<li><button type="button" data-goto="${key}" class="c${frame.cluster}"><b>${key}</b>`
           + `<span>${escapeHtml(frame.label)}</span><em>${formatMinutes(frame.minutes * data.paths[pathName].factor)}</em></button></li>`;
@@ -314,14 +342,22 @@
     const step = current();
     body.dataset.step = step.id;
     travel(step.node, instant);
-    if (index > 0 && timerStart === null) timerStart = Date.now();
+    if (index > 0 && timerStart === null && !silent) setTimer(Date.now());
     render();
-    history.replaceState(null, '', `#${pathName}~${step.id}`);
+    history.replaceState(null, '', hashFor(index));
     $('.sr-status').textContent = `${index + 1}/${list.length} ${step.label}`;
+    if (!silent) movedSinceHello = true;
     if (!silent && !remote) {
       lastNavigated = Date.now();
       channel?.postMessage({ type: 'nav', path: pathName, index, timerStart });
     }
+  }
+
+  // '#path~step', plus '~position' for steps a path visits more than once (the overview returns).
+  function hashFor(position) {
+    const list = order();
+    const id = list[position];
+    return `#${pathName}~${id}${list.indexOf(id) !== list.lastIndexOf(id) ? `~${position}` : ''}`;
   }
 
   function flyFree(id) {
@@ -372,31 +408,68 @@
     if (parent) ascend(parent);
   }
 
-  // Where to land in another path: the same step, else its frame, else the first frame of the same topic,
-  // else the next frame of the story, else the start.
-  function locate(list, stepId) {
-    let found = list.indexOf(stepId);
-    if (found >= 0) return found;
+  // Where to land in another path. The same non-overview step or its frame if the target has it; otherwise the
+  // first target frame at or after the anchor, searched along the story and then along the rest of the source
+  // path. The anchor is the step's frame, a topic's first frame in the source path, or for an overview/closing
+  // step the next frame the source path would show. Only if the target's material lies wholly behind does it land
+  // on the target's end (closing); otherwise it starts from the beginning.
+  // Step ids of the previous deck still found in shared links.
+  const LEGACY = new Map([['title', 'hub'], ['canvas', 'overview'],
+    ...[1, 2, 3, 4, 5, 6].map((n) => [`c${n}`, `p${n}`])]);
+
+  function locate(list, stepId, source = null, sourceIndex = -1) {
+    stepId = LEGACY.get(stepId) || stepId;
+    if (!steps.has(stepId) && !nodes[stepId]) return 0;  // unknown or mistyped ids start at the top
     const node = steps.get(stepId)?.node || stepId;
     const [container, frame] = chain(node);
+    const whole = !container;  // overview or closing: use the position, not the (repeated) step id
+    let found = whole && source ? -1 : list.indexOf(stepId);
+    if (found >= 0) return found;
     if (frame && (found = list.indexOf(frame)) >= 0) return found;
     if (container && (found = list.findIndex((id) => chain(steps.get(id).node)[0] === container)) >= 0) return found;
-    const from = frame ? FRAMES.indexOf(frame) : -1;
-    if (from >= 0) {
-      const next = FRAMES.slice(from).find((key) => list.includes(key));
-      if (next) return list.indexOf(next);
+    const sourceSteps = source && hasPath(source) ? data.paths[source].steps : [];
+    const sourceFrames = source && hasPath(source) ? data.paths[source].frames : FRAMES;
+    let anchor = frame || sourceFrames.find((key) => nodes[key]?.parent === container)
+      || FRAMES.find((key) => nodes[key]?.parent === container);
+    let afterEnd = false;
+    // Before the source path has shown any frame (its opening overview), the target also starts at the top.
+    if (whole && source && !sourceSteps.slice(0, Math.max(0, sourceIndex)).some((id) => steps.get(id).frame)) return 0;
+    if (whole) {
+      anchor = sourceSteps.slice(Math.max(0, sourceIndex)).map((id) => steps.get(id).frame).find(Boolean);
+      if (!anchor && sourceFrames.length) {
+        anchor = sourceFrames[sourceFrames.length - 1];
+        afterEnd = true;
+      }
     }
-    return 0;
+    if (!anchor) return 0;
+    const pick = (order) => {
+      const from = order.indexOf(anchor);
+      return from < 0 ? null : order.slice(from + (afterEnd ? 1 : 0)).find((key) => list.includes(key));
+    };
+    // Story order first (so 5-1 comes before 5-2); the source path's own order covers paths that loop back to 0-2.
+    const next = pick(FRAMES) || pick(sourceFrames);
+    if (next) return list.indexOf(next);
+    const at = FRAMES.indexOf(anchor);
+    const behind = FRAMES.slice(0, at + 1).some((key) => list.includes(key))
+      || sourceFrames.slice(0, Math.max(0, sourceFrames.indexOf(anchor))).some((key) => list.includes(key));
+    if (!behind) return 0;
+    if (list.includes('closing')) return list.lastIndexOf('closing');
+    // A part without a closing step (2부, 3부) starts over at its first frame rather than at a dead end.
+    const first = list.findIndex((id) => steps.get(id).kind === 'frame');
+    return first >= 0 ? first : 0;
   }
 
   function setPath(name) {
     if (!hasPath(name)) return;
-    const stepId = detour ? aim : current()?.id;
+    // Exploring a node keeps that node; looking at the overview keeps the talk's position instead.
+    const stepId = detour && aim !== 'overview' ? aim : current()?.id;
+    const source = pathName;
+    const sourceIndex = index;
     pathName = name;
     storage.set('fde-path', name);
     drawRoute();
     buildProgress();
-    go(locate(order(), stepId));
+    go(locate(order(), stepId, source, sourceIndex));
   }
 
   const isMajor = (id) => !DETAIL.has(steps.get(id).kind);
@@ -483,7 +556,12 @@
     $('.notes-title').textContent = frame ? frame.title : (detour ? crumbs(aim).slice(-1)[0].label : step.label);
     $('.notes-next').textContent = detour ? '자유 탐색 중 · → 키로 경로에 복귀합니다' : next ? `다음 → ${next.label}` : '경로의 마지막 단계입니다';
     $('.clock-budget').textContent = frame ? `프레임 ${formatMinutes(frame.minutes * path.factor)} · 전체 ${path.minutes}분` : `전체 ${path.minutes}분`;
-    $$('[data-tab]').forEach((button) => button.setAttribute('aria-selected', String(button.dataset.tab === tab)));
+    $$('[data-tab]').forEach((button) => {
+      const selected = button.dataset.tab === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+    $('.notes-body').setAttribute('aria-labelledby', `tab-${tab}`);
     const key = `${tab}|${frameKey || step.id}|${pathName}`;
     if (key === notesKey) return;
     notesKey = key;
@@ -491,7 +569,7 @@
     target.scrollTop = 0;
     if (step.id === 'closing') {
       target.innerHTML = '<p class="notes-message">네 영역이 하나의 서비스로 남기는 결과</p><ol>'
-        + [1, 2, 3, 4].map((n) => `<li><strong>${escapeHtml(data.planets[n].outcome)}</strong> · ${escapeHtml(data.planets[n].name)}</li>`).join('')
+        + [1, 2, 3, 4].map((n) => `<li><strong>${escapeHtml(data.planets[n].outcome)}</strong> · ${escapeHtml(data.planets[n].proof)}</li>`).join('')
         + '</ol><p>2부 현장 플레이북과 3부 규모 확장은 이 결과를 고객 현장에서 합의하고, 전 공장으로 넓히는 방법입니다.</p>';
     } else if (frame) {
       const points = frame.points.map((point) => `<li>${escapeHtml(point)}</li>`).join('');
@@ -537,13 +615,21 @@
     const route = document.getElementById('route');
     if (!route) return;
     const keys = data.paths[pathName].frames;
-    const points = keys.map((key) => `${nodes[key].x.toFixed(0)},${nodes[key].y.toFixed(0)}`).join(' ');
+    // Each stop sits on its frame's outer rim, away from the topic title in the planet's centre.
+    const stops = keys.map((key) => {
+      const frame = nodes[key];
+      const parent = nodes[frame.parent];
+      const dx = frame.x - parent.x;
+      const dy = frame.y - parent.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const push = frame.parent === 'hub' ? 0 : 1500;
+      return { key, x: Math.round(frame.x + (dx / length) * push), y: Math.round(frame.y + (dy / length) * push) };
+    });
     // Stops carry frame keys (not 1…N) so they never read as topic numbers; the line gives the order.
-    route.innerHTML = `<polyline points="${points}"/>` + keys.map((key) => {
-      const x = nodes[key].x.toFixed(0);
-      const y = nodes[key].y.toFixed(0);
-      return `<rect x="${x - 900}" y="${y - 420}" width="1800" height="840" rx="420"/><text x="${x}" y="${y}">${key}</text>`;
-    }).join('');
+    const lines = document.getElementById('route-lines');
+    if (lines) lines.innerHTML = `<polyline points="${stops.map((stop) => `${stop.x},${stop.y}`).join(' ')}"/>`;
+    route.innerHTML = stops.map((stop) =>
+      `<rect x="${stop.x - 1050}" y="${stop.y - 480}" width="2100" height="960" rx="480"/><text x="${stop.x}" y="${stop.y}">${stop.key}</text>`).join('');
   }
 
   function refit() {
@@ -575,7 +661,8 @@
       tickClock();
     },
     presenter() {
-      window.open(`${location.pathname}?presenter${location.hash}`, 'fde-presenter', 'popup,width=1280,height=800');
+      window.open(`${location.pathname}?presenter&from=${encodeURIComponent(tabId)}${location.hash}`,
+        'fde-presenter', 'popup,width=1280,height=800');
     },
     fullscreen() {
       if (document.fullscreenElement) document.exitFullscreen?.();
@@ -598,7 +685,7 @@
     },
     'sheet-close': () => zoomOut(),
     'timer-reset'() {
-      timerStart = Date.now();
+      setTimer(Date.now());
       tickClock();
       channel?.postMessage({ type: 'timer', timerStart });
     },
@@ -619,7 +706,10 @@
     if (event.detail > 0 && control.matches('button')) control.blur();
     if (control.dataset.action !== 'paths') closeMenu();
     if (control.dataset.action) actions[control.dataset.action]?.();
-    else if (control.dataset.path) setPath(control.dataset.path);
+    else if (control.dataset.path) {
+      setPath(control.dataset.path);
+      if (event.detail === 0) $('[data-action="paths"]').focus();  // keyboard users return to the menu button
+    }
     else if (control.dataset.tab) {
       tab = control.dataset.tab;
       render();
@@ -850,26 +940,42 @@
   // ------------------------------------------------------------ presenter window sync
   const channel = 'BroadcastChannel' in window ? new BroadcastChannel('fde-atlas') : null;
   if (!channel) $('[data-action="presenter"]')?.setAttribute('hidden', '');
-  const helloId = presenter ? `${Date.now()}-${Math.round(performance.now() * 1000)}` : null;
-  let adopted = -1;
+  // A presenter asks once ('hello'), collects the replies for a moment and adopts ONE window's step and clock:
+  // the window that opened it (from=…), else the most recently driven one (ties: the first reply).
+  const helloId = presenter ? tabId : null;
+  const replies = [];
+  let movedSinceHello = false;
+  function adoptReply() {
+    if (movedSinceHello) return;  // someone already drove the talk; their 'nav' is newer than any reply
+    const valid = replies.filter((reply) => hasPath(reply.path) && Number.isInteger(reply.index));
+    const own = location.hash.match(/^#(\w+)~([\w.-]+)/);
+    const sameStep = (reply) => Boolean(own) && reply.path === own[1] && data.paths[reply.path].steps[reply.index] === own[2];
+    // Rank: the opener, then a window on the presenter's own step, then the most recently driven window.
+    const rank = (reply) => [opener && reply.from === opener ? 1 : 0, sameStep(reply) ? 1 : 0, reply.lastNavigated || 0];
+    const better = (a, b) => {
+      const [ra, rb] = [rank(a), rank(b)];
+      for (let i = 0; i < ra.length; i += 1) if (ra[i] !== rb[i]) return ra[i] > rb[i];
+      return String(a.from) < String(b.from);  // stable tie-break, independent of arrival order
+    };
+    const chosen = valid.reduce((best, reply) => (!best || better(reply, best) ? reply : best), null);
+    if (!chosen) return;
+    if (chosen.timerStart) setTimer(chosen.timerStart);
+    remote = true;
+    if (chosen.path !== pathName) {
+      pathName = chosen.path;
+      drawRoute();
+      buildProgress();
+    }
+    go(chosen.index);
+    remote = false;
+    tickClock();
+  }
   channel?.addEventListener('message', ({ data: message }) => {
     if (message.type === 'hello' && !presenter) {
       // Reply only to the presenter that asked; other audience windows ignore 'state'.
-      channel.postMessage({ type: 'state', to: message.id, path: pathName, index, timerStart, lastNavigated });
+      channel.postMessage({ type: 'state', to: message.id, from: tabId, path: pathName, index, timerStart, lastNavigated });
     } else if (message.type === 'state') {
-      if (message.to !== helloId || !hasPath(message.path)) return;
-      if (message.timerStart) timerStart = timerStart && clockSynced ? Math.min(timerStart, message.timerStart) : message.timerStart;
-      clockSynced = clockSynced || Boolean(message.timerStart);
-      if (message.lastNavigated < adopted) return;  // follow the window that was driven most recently
-      adopted = message.lastNavigated;
-      remote = true;
-      if (message.path !== pathName) {
-        pathName = message.path;
-        drawRoute();
-        buildProgress();
-      }
-      go(message.index);
-      remote = false;
+      if (message.to === helloId) replies.push(message);
     } else if (message.type === 'free' && nodes[message.aim]) {
       remote = true;
       flyFree(message.aim);
@@ -882,36 +988,35 @@
       if (aim !== focusId) setFocus(aim);
       render();
       remote = false;
-    } else if (message.type === 'nav') {
+    } else if (message.type === 'nav' && hasPath(message.path) && Number.isInteger(message.index)) {
       remote = true;
-      if (message.path !== pathName && hasPath(message.path)) {
+      if (message.path !== pathName) {
         pathName = message.path;
         drawRoute();
         buildProgress();
       }
-      // Every open window answers a presenter's hello; the earliest start is when the talk began.
-      if (message.timerStart) {
-        timerStart = clockSynced && timerStart ? Math.min(timerStart, message.timerStart) : message.timerStart;
-        clockSynced = true;
-      }
+      // The window that drives the talk owns its clock; followers take it as is.
+      if (message.timerStart) setTimer(message.timerStart);
       go(message.index);
       remote = false;
     } else if (message.type === 'theme' && (message.theme === 'dark' || message.theme === 'light')) {
       root.dataset.theme = message.theme;
     } else if (message.type === 'timer') {
-      timerStart = message.timerStart;
+      setTimer(message.timerStart);
       tickClock();
     }
   });
 
   // ------------------------------------------------------------ start
   function fromHash() {
-    const match = location.hash.match(/^#(\w+)~([\w.-]+)$/) || location.hash.match(/^#\/(\w+)\/([\w.-]+)$/);
+    const match = location.hash.match(/^#(\w+)~([\w.-]+)(?:~(\d+))?$/) || location.hash.match(/^#\/(\w+)\/([\w.-]+)$/);
     if (!match || !hasPath(match[1])) return false;
     pathName = match[1];
     drawRoute();
     buildProgress();
-    go(locate(order(), match[2]), { instant: true, silent: true });
+    const list = order();
+    const position = match[3] !== undefined && list[Number(match[3])] === match[2] ? Number(match[3]) : locate(list, match[2]);
+    go(position, { instant: true, silent: true });
     return true;
   }
 
@@ -919,20 +1024,24 @@
   buildMenu();
   drawRoute();
   buildProgress();
-  if (!fromHash()) {
+  const fromLink = fromHash();
+  if (!fromLink) {
     // Opening shot: start far out and slightly turned, then fly in to the overview like a Prezi intro.
     const overview = fitNode('overview');
     if (!reducedMotion.matches) apply({ ...overview, s: overview.s * 0.3, r: -14 });
     go(0, { silent: true });
   }
   addEventListener('hashchange', () => {
-    if (location.hash !== `#${pathName}~${current().id}`) fromHash();
+    if (location.hash !== hashFor(index)) fromHash();
   });
   addEventListener('resize', () => requestAnimationFrame(refit));
   narrowQuery.addEventListener?.('change', () => requestAnimationFrame(refit));
   // Fonts never move camera targets (they come from the build); only refit if nothing is flying.
   document.fonts?.ready.then(() => { if (!world.classList.contains('moving')) refit(); });
-  if (presenter) channel?.postMessage({ type: 'hello', id: helloId });
+  if (presenter && channel) {
+    channel.postMessage({ type: 'hello', id: helloId });
+    setTimeout(adoptReply, 600);
+  }
   setInterval(tickClock, 1000);
   tickClock();
   body.classList.add('ready');

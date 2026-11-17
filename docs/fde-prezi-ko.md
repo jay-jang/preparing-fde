@@ -1,6 +1,6 @@
 # FDE 면접과 온보딩을 위한 엔터프라이즈 AI 아키텍처 발표안
 
-고객의 레거시 데이터를 안전하게 연결하고, 근거를 제시하는 AI를 배포하며, 현장 프로토타입을 운영 서비스로 전환하는 설계를 다룬다. 발표의 중심 질문은 **“이 답변을 어떤 데이터와 권한으로 만들었고, 장애가 난 뒤에도 같은 사실을 재현할 수 있는가?”**다. 거시적 파이프라인에서 출발해 네 기술 영역의 실패 지점과 코드로 확대하고, 마지막에 하나의 운영 체계로 돌아온다.
+고객의 레거시 데이터를 안전하게 연결하고, 근거를 제시하는 AI를 배포하며, 현장 프로토타입을 운영 서비스로 전환하는 설계를 다룬다. 발표의 중심 질문은 **“이 답변을 어떤 데이터와 권한으로 만들었고, 장애가 난 뒤에도 같은 사실을 재현할 수 있는가?”**다. 거시적 파이프라인에서 출발해 네 기술 영역의 실패 지점과 코드로 확대하고, 마지막에 하나의 운영 체계로 돌아온다. 2부 현장 플레이북은 고객 Discovery, 오답 신고의 재현, 용량 산정으로 이 설계를 현장에서 합의하고 지키는 방법을 다룬다.
 
 기준일은 2026년 11월 16일이다. 공식 문서가 설명하는 동작에는 해당 링크를 붙였다. 아래 규모, 지연시간, 품질 기준과 일정은 **제조업 고객을 가정한 제안값**이며 특정 기업의 내부 구현이나 실제 고객 측정치가 아니다.
 
@@ -17,26 +17,48 @@
 | 업무 성과 | 정비 근거를 찾는 시간과 정답 도달률을 동일 과제의 전후 비교로 측정한다. 다운타임 감소를 작은 파일럿만으로 인과적으로 주장하지 않는다. |
 | 환경 | 외부 인터넷 없는 온프레미스. 내부 IdP, DNS, NTP, PKI, 레지스트리, 모델 저장소와 관측 시스템을 사용한다. |
 
-전체 발표는 **14개 프레임, 약 39분과 질의응답**으로 구성한다. 15분 면접에서는 0-1 → 1-1 → 1-2 → 2-1 → 2-2 → 2-3 → 3-1 → 4-1 → 0-2를 사용하고 각 코드의 핵심 불변식 하나만 설명한다. 온보딩에서는 모든 프레임을 따라가며 동봉한 코드를 실행한다.
+본편은 **14개 프레임, 약 39분**, 2부 현장 플레이북은 **3개 프레임, 약 10분**이며 질의응답을 따로 둔다. 15분 면접에서는 0-1 → 1-1 → 1-2 → 2-1 → 2-2 → 2-3 → 3-1 → 4-1 → 0-2를 사용하고 각 코드의 핵심 불변식 하나만 설명한다. 온보딩에서는 본편과 플레이북의 모든 프레임을 따라가며 동봉한 코드를 실행한다. 플레이북만 따로 진행하면 면접 뒤 심화 질문이나 온보딩 2부로 쓸 수 있다. 마지막의 면접 Q&A와 고객 상황 롤플레이는 발표자 노트의 Q&A 탭에서도 바로 열린다.
 
 ## Prezi 캔버스와 카메라 경로
 
-좌표는 제작을 위한 상대 단위이며 Prezi API 파라미터가 아니다. 전체 캔버스를 16,000 × 9,000, 중심을 (0, 0)으로 잡는다. 중앙에는 **Identity · Policy · Lineage · Observability**를 세로 기둥으로 두고, 네 영역의 모든 단계에 연결한다.
+저장소의 줌 캔버스(`index.html`)가 이 구성을 실제로 구현한다. 좌표는 CSS 픽셀 단위의 제작 좌표이며 Prezi API 파라미터가 아니다. 본편 섬은 14,820 × 11,220이고, 오른쪽에 Part 2 현장 플레이북 섬을 따로 둔다. 본편 중앙에는 **Identity · Policy · Lineage · Observability**를 세로 기둥으로 둔다. 데이터(1→2)와 피드백(4→1) 연결선은 기둥을 가로지르고, 응답(2→4)과 실행 환경(3→1) 연결선은 좌우 열 안에서 세로로 잇는다.
 
-| 영역 | 중심 좌표 | Level 2 프레임 크기 | Level 3 배치 |
-| --- | --- | --- | --- |
-| 1 데이터 통합과 온톨로지 | (-4,500, -2,100) | 6,400 × 3,300 | 1-2는 왼쪽 아래, 1-3은 오른쪽 아래에 2,700 × 1,520으로 중첩 |
-| 2 RAG와 에이전트 | (4,500, -2,100) | 6,400 × 3,300 | 2-2와 2-3을 검색 경로와 생성 경로 안에 중첩 |
-| 3 폐쇄망과 거버넌스 | (-4,500, 2,100) | 6,400 × 3,300 | 3-2는 실행 환경, 3-3은 데이터 경계 안에 중첩 |
-| 4 현장 MVP와 운영 | (4,500, 2,100) | 6,400 × 3,300 | 4-2는 승격 게이트, 4-3은 운영 피드백 안에 중첩 |
+| 영역 | 캔버스 위치 | 구성 |
+| --- | --- | --- |
+| 표지와 0-1 · 0-2 | 본편 상단 띠 | 제목, 중심 질문, 사례 질문. 오른쪽에 0-1과 0-2 카드 |
+| 1 데이터 통합과 온톨로지 | 왼쪽 위 | 장 표지와 1-1 · 1-2 · 1-3 카드의 2 × 2 격자 |
+| 2 RAG와 에이전트 | 오른쪽 위 | 장 표지와 2-1 · 2-2 · 2-3 카드 |
+| 3 폐쇄망과 거버넌스 | 왼쪽 아래 | 장 표지와 3-1 · 3-2 · 3-3 카드 |
+| 4 현장 MVP와 운영 | 오른쪽 아래 | 장 표지와 4-1 · 4-2 · 4-3 카드 |
+| 5 현장 플레이북 | 본편 오른쪽의 별도 섬 | 장 표지와 5-1 · 5-2 · 5-3 카드 |
 
-경로는 **0-1 → 1-1 → 1-2 → 1-3 → 전체 조감도 잠깐 복귀 → 2-1 → 2-2 → 2-3 → 조감도 → 3-1 → 3-2 → 3-3 → 조감도 → 4-1 → 4-2 → 4-3 → 0-2**다. 조감도 복귀는 같은 카메라 위치를 재사용하는 전환이며 추가 콘텐츠 프레임이 아니다. Level 1에서는 전체 흐름, Level 2에서는 시스템 간 계약, Level 3에서는 실패를 막는 코드만 읽히도록 한다.
+각 영역은 6,060 × 3,700, 카드는 2,700 × 1,520이다. 카드에는 프레임 번호, 제목, **화면 핵심** 한 문장, 요점 세 개, 도식, 대표 코드 하나만 올린다. 카메라는 카드 → 도식 → 코드 순서로 한 단계씩 확대한다. 카드 전체 화면에서는 메시지와 요점이 읽히고, 도식과 코드는 확대했을 때 읽히는 크기로 배치한다. 긴 분석과 전체 코드는 발표자 노트와 핸드아웃으로 보낸다.
 
-색은 데이터 통합 파랑, AI 청록, 보안 보라, 운영 주황으로 고정한다. 실패 경로는 붉은 점선, 정상 경로는 실선으로 표시하고 색 외에 라벨도 붙인다. 프레임 회전은 사용하지 않는다. 화면에는 한 문장과 도식, 코드 약 12~20줄을 우선 배치하고 긴 분석과 전체 코드는 발표자 자료로 사용한다. 작은 글씨를 한 이미지에 몰아넣지 말고 Level 3 코드를 별도 텍스트 상자로 만든다.
+| 경로 | 순서 | 용도 |
+| --- | --- | --- |
+| 면접 15분 | 표지 → 조감도 → 0-1 → 1-1 → 1-2 → 2-1 → 2-2 → 2-3 → 3-1 → 4-1 → 0-2 → 0-2 조감도 | 21단계. Level 1·2는 도식, Level 3는 코드 하나만 확대해 핵심 불변식을 설명 |
+| 온보딩 전체 | 표지 → 조감도 → 0-1 → 1-1~1-3 → 조감도 → 2-1~2-3 → 조감도 → 3-1~3-3 → 조감도 → 4-1~4-3 → 0-2 → 0-2 조감도 → 5-1~5-3 → 전체 캔버스 | 모든 프레임의 카드·도식·코드와 동봉 코드 실행 |
+| 현장 플레이북 | 5-1 → 5-2 → 5-3 → 전체 캔버스 | 온보딩 2부 또는 면접 심화 질문 대비 |
 
-Mermaid는 편집 가능한 도식 원본이다. Prezi Present로 옮길 때는 각 도식을 PNG로 렌더링해 가져오고, 제목·코드·핵심 문장은 네이티브 텍스트로 유지한다. Present와 Infographics의 이미지 지원 범위는 다르므로 여기서는 PNG를 사용한다. [Prezi 이미지 형식 안내](https://support.prezi.com/hc/en-us/articles/8285064300183-Adding-and-using-the-Bynder-integration)
+조감도 복귀는 같은 카메라 위치를 재사용하는 전환이며 추가 콘텐츠 프레임이 아니다. 0-2 조감도에서는 네 영역 위에 **재생 가능한 상태 · 허용된 근거 · 검증된 실행물 · 운영 가능한 책임**을 겹쳐 보인다. 먼 거리 이동은 잠깐 축소했다가 다시 확대하는 경로로 움직여 지금 어디에 있는지 잃지 않게 한다. Level 1에서는 전체 흐름, Level 2에서는 시스템 간 계약, Level 3에서는 실패를 막는 코드만 읽히도록 한다.
+
+색은 데이터 통합 파랑, AI 청록, 보안 보라, 운영 주황, 현장 플레이북 올리브로 고정한다. 실패 경로는 붉은 점선과 붉은 상자, 정상 경로는 실선으로 표시하고 색 외에 라벨도 붙인다. 프레임 회전은 사용하지 않는다. 도식은 16:9 카드 안에서 확대해 읽히도록 가로세로비 약 1.3~2.4로 다시 배치했다.
+
+발표 중에는 `→`·Space로 다음 단계, `Shift + →`로 다음 프레임, `O`로 전체 캔버스(다시 `O`나 `Esc`로 복귀), `N`으로 발표자 노트(대본·분석·화면 구성·Q&A 탭, 프레임별 시간 예산과 타이머), `P`로 별도 발표자 창을 연다. 발표자 창과 청중 화면은 같은 브라우저의 두 창으로 동기화된다. 주소의 `#/경로/단계`로 특정 단계를 바로 공유한다.
+
+Mermaid는 편집 가능한 도식 원본이다. 줌 캔버스는 확대해도 선명하도록 SVG를 인라인으로 넣고, 핸드아웃과 Prezi Present 이관에는 PNG를 사용한다. Prezi로 옮길 때는 각 도식을 PNG로 가져오고, 제목·화면 핵심·코드는 네이티브 텍스트로 유지한다. Present와 Infographics의 이미지 지원 범위는 다르므로 여기서는 PNG를 사용한다. [Prezi 이미지 형식 안내](https://support.prezi.com/hc/en-us/articles/8285064300183-Adding-and-using-the-Bynder-integration)
 
 ## Frame 0-1 | Level 1 Overview | 고객 질문에서 운영 피드백까지
+
+**[화면 핵심 (On-screen Message)]**
+
+`End-to-End Architecture Overview`
+
+> 답변에 쓰인 데이터·권한·버전을 추적해 실패를 경계별로 분해한다.
+
+- 수집·계약과 허용 문서 검색
+- 폐쇄망 공급망과 평가 피드백
+- 단계별 요청 deadline 배분
 
 **[화면 시각화 가이드 (Visual Layout)]**
 
@@ -44,19 +66,29 @@ Mermaid는 편집 가능한 도식 원본이다. Prezi Present로 옮길 때는 
 
 ```mermaid
 flowchart LR
-  S["ERP / 정비 API / PDF"] --> I["1 수집과 계약 검증"]
-  I --> O["온톨로지와 변경 이력"]
-  O --> X["청크와 검색 인덱스"]
-  U["정비 엔지니어 질문"] --> P["인증과 권한 판정"]
-  P --> R["2 허용 문서 하이브리드 검색"]
+  %% Invisible links (~~~) fold the feedback loop into a ring: data path on top, answer path back along the bottom.
+  %% Keep M first and the ~~~ lines in this order; they decide which edges dagre draws right-to-left.
+  M["4 평가와<br/>운영 피드백"] ~~~ A["인용과 보류 사유가<br/>있는 응답"]
+  A ~~~ G["근거 검증과<br/>로컬 추론"]
+  G ~~~ R["2 허용 문서<br/>하이브리드 검색"]
+  subgraph Q[" "]
+    U["정비 엔지니어<br/>질문"] --> P["인증과<br/>권한 판정"]
+  end
+  S["ERP / 정비 API /<br/>PDF"] --> I["1 수집과<br/>계약 검증"]
+  I --> O["온톨로지와<br/>변경 이력"]
+  O --> X["청크와<br/>검색 인덱스"]
+  I ~~~ D["3 내부 공급망과<br/>실행 환경"]
   X --> R
-  R --> G["근거 검증과 로컬 추론"]
-  G --> A["인용과 보류 사유가 있는 응답"]
-  D["3 내부 공급망과 실행 환경"] -.-> I
+  P --> R
+  D -.-> I
   D -.-> G
-  A --> M["4 평가와 운영 피드백"]
+  R --> G
+  G --> A
+  A --> M
   M --> I
   M --> G
+  M ~~~ D
+  style Q fill:none,stroke:none
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -91,20 +123,36 @@ if sum(stage_deadlines_ms.values()) > 5000:
 
 ## Frame 1-1 | Level 2 Topic Cluster | 레거시 통합에서 객체의 의미와 책임을 정하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Legacy Entity Resolution`
+
+> 속성별 권위 소스(authoritative source)를 고객과 합의해 업무 객체를 정의한다.
+
+- 소스 키와 canonical ID 매핑
+- 설비·작업·근거의 관계와 책임
+- 불명확한 매칭의 검토 대기열 격리
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 파랑 영역으로 확대한다. ERP 설비 ID, 정비 시스템의 장비 코드, PDF의 문자열 P-101을 각각 표시하고, 승인된 매핑만 하나의 Asset에 연결한다. 확신이 없는 연결은 회색 검토 대기열에 둔다. `Asset → WorkOrder → Evidence`를 업무 의미의 골격으로 강조한다. 발표 시간 2분.
 
 ```mermaid
-flowchart LR
-  E["ERP 설비 원장"] --> IM["소스 키와 canonical ID 매핑"]
+flowchart TB
+  %% Statement order sets the layout: review branch on the left, Asset -> WorkOrder -> Evidence spine in the middle,
+  %% document path on the right. The invisible link keeps PDF와 OCR on the source row.
+  IM["소스 키와 canonical ID 매핑"] -. "불명확한 매칭" .-> H["고객 데이터 담당자 검토"]
+  E["ERP 설비 원장"] --> IM
   C["정비 API"] --> IM
-  F["PDF와 OCR"] --> Q["문서 버전과 설비 연결 검토"]
   IM --> A["Asset / Site"]
   A --> W["WorkOrder / FailureEvent"]
-  Q --> V["EvidenceDocument / Chunk"]
-  W --> V
-  IM -. "불명확한 매칭" .-> H["고객 데이터 담당자 검토"]
+  W --> V["EvidenceDocument / Chunk"]
+  F["PDF와 OCR"] --> Q["문서 버전과 설비 연결 검토"]
+  Q --> V
+  F ~~~ IM
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class H fail
+  linkStyle 0 stroke:#b4483c
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -138,20 +186,41 @@ VALUES
 
 ## Frame 1-2 | Level 3 Deep Dive and Code | 재전송과 역순 이벤트에도 상태를 보존하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Idempotent Event Ingestion`
+
+> 소스 위치가 더 클 때만 갱신해 재전송과 역순 도착을 견딘다.
+
+- event_id와 payload hash 검사
+- receipt·상태·outbox의 원자적 기록
+- COMMIT 이후 consumer offset ACK
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 CDC consumer와 materialized Asset 사이로 확대한다. `offset 10 → 20 → 10 재전송`을 순서대로 보여주고 DB 상태가 20에서 유지되는 장면을 강조한다. receipt·state·audit outbox를 하나의 트랜잭션 테두리로 묶는다. 발표 시간 4분.
 
 ```mermaid
-flowchart LR
-  K["CDC 이벤트"] --> V["계약과 identity 검증"]
-  V --> T["DB 트랜잭션 시작"]
-  T --> D["event ID와 payload hash 확인"]
-  D --> U["더 큰 소스 위치만 상태 갱신"]
-  U --> A["감사 outbox 삽입"]
-  A --> C["COMMIT"]
-  C --> O["consumer offset ACK"]
-  V -. "계약 오류" .-> Q["내구성 있는 격리 저장 후 정책에 따라 처리"]
+flowchart TB
+  subgraph R1["1 수신과 검증"]
+    direction LR
+    K["CDC 이벤트"] --> V["계약과<br/>identity 검증"]
+    V -. "계약 오류" .-> Q["내구성 있는<br/>격리 저장 후<br/>정책에 따라 처리"]
+    V --> T["DB 트랜잭션<br/>시작"]
+    T --> D["event ID와<br/>payload hash 확인"]
+  end
+  subgraph R2["2 상태 갱신 · 감사 · COMMIT 뒤 ACK"]
+    direction LR
+    U["더 큰 소스 위치만<br/>상태 갱신"] --> A["감사 outbox<br/>삽입"]
+    A --> C["COMMIT"]
+    C --> O["consumer<br/>offset ACK"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class Q fail
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  linkStyle 1 stroke:#b4483c
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -193,20 +262,33 @@ with psycopg.connect(os.environ["FDE_INGEST_DSN"], autocommit=True) as conn:
 
 ## Frame 1-3 | Level 3 Deep Dive and Code | 스키마 변경과 삭제를 검색까지 전달하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Schema Evolution and Tombstones`
+
+> source와 canonical 계약을 분리하고 삭제는 tombstone으로 남긴다.
+
+- 정규화 어댑터와 알 수 없는 버전 격리
+- 오래된 backfill로 인한 부활 차단
+- 검색 제외와 캐시 무효화
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 오른쪽 미시 프레임으로 이동한다. `v1 asset_name/state → canonical → v2 name/status/criticality`를 위에 놓고, 아래에는 `삭제 → tombstone → 인덱스 비활성화 → 캐시 무효화`를 그린다. 오래된 backfill이 tombstone에 막히는 화살표를 강조한다. 발표 시간 3분.
 
 ```mermaid
 flowchart LR
-  V1["소스 계약 v1"] --> N["명시적 정규화 어댑터"]
+  V1["소스 계약 v1"] --> N["명시적<br/>정규화 어댑터"]
   V2["소스 계약 v2"] --> N
   N --> C["canonical 계약"]
-  C --> P["활성 projection 버전"]
-  U["알 수 없는 버전"] -.-> Q["격리와 계약 검토"]
-  D["삭제 이벤트"] --> T["버전이 있는 tombstone"]
-  T --> R["검색 제외와 캐시 무효화"]
-  B["오래된 backfill"] -. "소스 위치가 낮아 거절" .-> T
+  C --> P["활성 projection<br/>버전"]
+  U["알 수 없는 버전"] -. "거부" .-> Q["격리와 계약 검토"]
+  D["삭제 이벤트"] --> T["버전이 있는<br/>tombstone"]
+  T --> R["검색 제외와<br/>캐시 무효화"]
+  B["오래된 backfill"] -. "소스 위치가 낮아<br/>거절" .-> T
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class Q fail
+  linkStyle 4,7 stroke:#b4483c
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -242,21 +324,39 @@ with psycopg.connect(os.environ["FDE_INGEST_DSN"], autocommit=True) as conn:
 
 ## Frame 2-1 | Level 2 Topic Cluster | 권한이 있는 근거 안에서 하이브리드 검색하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Authorized Hybrid Retrieval`
+
+> 허용된 문서 집합 안에서 BM25와 dense 벡터를 RRF로 결합한다.
+
+- DB 권한과 문서 ACL의 사전 적용
+- 키워드형·의미형 holdout 분리
+- 허용 청크 5,000개 한도의 파일럿 정확 검색
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 전체 조감도를 거쳐 청록 영역으로 확대한다. 인증된 요청에서 시작해 권한 경계를 지난 뒤 lexical·dense 두 갈래로 나뉘게 한다. 두 화살표가 RRF에서 합쳐지고 reranker·context assembler로 이어진다. 비허용 문서가 LLM 앞에서 뒤늦게 제거되는 그림은 사용하지 않는다. 발표 시간 2분.
 
 ```mermaid
-flowchart LR
-  U["검증된 사용자와 tenant"] --> A["DB 권한과 문서 ACL"]
-  A --> B["Lexical / BM25"]
-  A --> V["Dense / cosine"]
-  B --> F["RRF 후보 결합"]
-  V --> F
-  F --> R["허용 후보만 rerank"]
-  R --> C["버전과 원문 위치가 있는 context"]
-  C --> L["로컬 LLM"]
-  L --> G["출력 검증과 권한 재확인"]
+flowchart TB
+  subgraph R1["1 권한 안에서 후보 만들기"]
+    direction LR
+    U["검증된<br/>사용자와 tenant"] --> A["DB 권한과<br/>문서 ACL"]
+    A --> B["Lexical / BM25"]
+    A --> V["Dense / cosine"]
+    B --> F["RRF 후보 결합"]
+    V --> F
+  end
+  subgraph R2["2 허용 후보로만 답하기"]
+    direction LR
+    R["허용 후보만<br/>rerank"] --> C["버전과 원문 위치가<br/>있는 context"]
+    C --> L["로컬 LLM"]
+    L --> G["출력 검증과<br/>권한 재확인"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -291,23 +391,33 @@ print([chunk.id for chunk in results])
 
 ## Frame 2-2 | Level 3 Deep Dive and Code | RBAC와 테넌트 경계를 DB에서 강제하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Database Row-level Security`
+
+> 요청자가 보낸 role 대신 DB의 membership과 RLS로 읽기 범위를 제한한다.
+
+- 요청마다 트랜잭션 범위의 identity 설정
+- 소유자·reader 분리와 FORCE RLS
+- 응답 직전 권한·버전·본문 재검증
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 검색 후보가 만들어지는 경계로 확대한다. Alice·Acme·Engineer 토큰과 Acme·HR 문서, Beta 문서를 나란히 놓고 뒤의 두 문서가 DB 조회 결과에 포함되지 않는 장면을 보여준다. 코드의 `set_config(..., true)`와 비특권 DB 계정을 강조한다. 발표 시간 4분.
 
 ```mermaid
 sequenceDiagram
-  participant U as Client
-  participant G as Trusted gateway
+  participant U as 클라이언트
+  participant G as 신뢰된 gateway
   participant D as PostgreSQL RLS
   participant R as Ranker
-  U->>G: Access token and query
-  G->>G: Verify signature issuer audience expiry
-  G->>D: BEGIN and transaction-local identity
-  D->>D: Tenant and membership role policy
-  D-->>G: Authorized chunks only
-  G->>D: COMMIT clears local identity
-  G->>R: Authorized candidates
+  U->>G: 접근 토큰과 질문
+  Note over G: 서명 · issuer · audience · 만료 검증
+  G->>D: BEGIN · 트랜잭션 로컬 identity
+  Note over D: tenant · membership role 정책
+  D-->>G: 허용된 청크만
+  G->>D: COMMIT · 로컬 identity 해제
+  G->>R: 허용된 후보
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -337,9 +447,13 @@ with psycopg.connect(os.environ["FDE_READER_DSN"], autocommit=True) as conn:
 # membership은 DB에서 읽는다. 요청자가 임의 role을 넘길 인자는 없다.
 ```
 
-정책의 핵심은 아래와 같다. `memberships`에도 요청자 본인 행만 보이는 RLS가 적용된다.
+정책의 핵심은 아래와 같다(`sql/schema.sql`). 소유자도 정책을 우회하지 않도록 FORCE를 켜고, `memberships`에도 요청자 본인 행만 보이는 RLS가 적용된다.
 
+<!-- deck -->
 ```sql
+ALTER TABLE fde.chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fde.chunks FORCE ROW LEVEL SECURITY;
+
 CREATE POLICY readable_chunks ON fde.chunks FOR SELECT TO fde_reader
 USING (
     tenant_id = current_setting('app.tenant', true)
@@ -361,12 +475,22 @@ USING (
 
 ## Frame 2-3 | Level 3 Deep Dive and Code | 환각과 에이전트 권한을 다른 경계에서 통제하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Guardrails and Tool Budgets`
+
+> 인용 출처는 코드로 검증하고 주장 내용은 독립 평가로 확인한다.
+
+- 인용 ID·버전·원문 대조
+- 고영향 판단의 전문가 검토
+- read-only search와 호출 예산
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 생성 경로로 확대한다. 모델 출력의 각 claim에 `chunk_id / version / quote` 태그를 붙이고, 없는 출처·바뀐 버전·원문에 없는 인용을 붉게 표시한다. 도구 호출은 모델과 업무 시스템 사이의 별도 검증 문을 지나게 한다. 발표 시간 4분.
 
 ```mermaid
-flowchart LR
+flowchart TB
   E["허용 근거와 버전"] --> L["LLM JSON 출력"]
   L --> S["엄격한 출력 schema"]
   S --> C["인용 ID와 버전과 원문 대조"]
@@ -375,6 +499,9 @@ flowchart LR
   L --> T["도구 이름과 인자 검증"]
   T --> R["read-only search와 호출 deadline"]
   T -. "write tool 거부" .-> D["별도 승인된 업무 action 경로"]
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class D fail
+  linkStyle 7 stroke:#b4483c
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -417,25 +544,36 @@ print(validated["claims"][0]["chunk_id"])
 
 ## Frame 3-1 | Level 2 Topic Cluster | 폐쇄망을 독립적인 공급망과 운영 환경으로 설계하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Air-gapped Supply Chain`
+
+> 서명된 release manifest로 반입물의 승인 여부와 무결성을 검증한다.
+
+- 번들 밖 신뢰 키와 승인 release ID
+- 내부 OCI·모델·패키지 저장소
+- 인터넷 없는 cold start 시험
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 전체 조감도를 거쳐 보라 영역으로 이동한다. 인터넷 연결 구역과 고객 폐쇄망 사이에 승인된 반입 지점을 하나만 둔다. 컨테이너 외에 모델·tokenizer·Python wheel·인증서·취약점 정보도 함께 이동하는 모습을 그린다. 발표 시간 2분.
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph Build["연결 구역"]
+    direction LR
     C["소스와 고정된 의존성"] --> B["빌드와 검사"]
-    B --> S["서명된 release manifest와 SBOM"]
+    B --> S["서명된 release<br/>manifest와 SBOM"]
   end
-  S --> T["승인된 반입과 검증"]
   subgraph Offline["고객 폐쇄망"]
-    T --> R["내부 OCI registry와 package mirror"]
+    T["승인된 반입과 검증"] --> R["내부 OCI registry와<br/>package mirror"]
     T --> M["모델과 tokenizer 저장소"]
     R --> K["Kubernetes 실행 환경"]
     M --> K
     I["내부 IdP / PKI / DNS / NTP"] --> K
-    K --> O["내부 로그와 메트릭과 감사 보관"]
+    K --> O["내부 로그와 메트릭과<br/>감사 보관"]
   end
+  Build --> T
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -473,18 +611,31 @@ print(verified["release_id"])
 
 ## Frame 3-2 | Level 3 Deep Dive and Code | 컨테이너 권한과 네트워크 경계를 실행 설정으로 고정하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Hardened Container Runtime`
+
+> 권한과 네트워크 경계를 설정으로 고정하고 실제 차단은 현장에서 확인한다.
+
+- sha256 image digest 명시
+- read-only root와 non-root 실행
+- default-deny 기반 NetworkPolicy
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 폐쇄망의 Kubernetes 내부로 확대한다. gateway·API·DB·inference를 별도 상자로 그리고 허용된 포트만 선으로 연결한다. Internet 방향은 선을 없애고 default deny를 표시한다. API 컨테이너 안에는 non-root·read-only root·token 미마운트를 작은 태그로 붙인다. 발표 시간 3분.
 
 ```mermaid
-flowchart LR
+flowchart TB
   GW["내부 gateway"] -->|8080| API["RAG API / non-root"]
   API -->|5432 TLS| DB["PostgreSQL"]
   API -->|8000 내부 인증| LLM["Local inference"]
   API -->|4317 TLS| OT["내부 OTel collector"]
   API -->|53 TCP와 UDP| DNS["내부 DNS"]
-  DENY["그 밖의 ingress와 egress 기본 거부"] -.-> API
+  DENY["그 밖의 ingress와<br/>egress 기본 거부"] -.-> API
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class DENY fail
+  linkStyle 5 stroke:#b4483c
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -537,19 +688,29 @@ resources:
 
 ## Frame 3-3 | Level 3 Deep Dive and Code | PII를 줄이고 감사 추적을 업무 경계에 남기기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Privacy Minimization and Auditing`
+
+> 필드 최소화와 HMAC 가명처리로 검색 projection과 감사 기록의 노출 위험을 줄인다.
+
+- 정형 연락처 필드 마스킹
+- 자유 텍스트 PII의 표본 평가
+- 원문 없는 감사 outbox와 별도 보관소
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 문서가 검색 인덱스로 넘어가는 경계와 API가 감사 기록을 남기는 경계를 나란히 확대한다. 원문에는 연락처가 있고 검색 projection에는 마스킹된 값만 남게 한다. 로그에 원문 질문·응답·토큰이 들어가는 화살표는 차단한다. 발표 시간 3분.
 
 ```mermaid
-flowchart LR
+flowchart TB
   RAW["접근 제한 원본"] --> MIN["필드 최소화와 PII 처리"]
   MIN --> IDX["권한이 있는 검색 projection"]
   REQ["인증된 요청"] --> DEC["정책 결정과 검증 결과"]
-  DEC --> OUT["감사 outbox에 내구성 있게 기록"]
+  DEC --> OUT["감사 outbox에<br/>내구성 있게 기록"]
   OUT --> W["별도 계정의 감사 보관소"]
   W --> ROOT["보관 정책과 변조 검증"]
-  CTRL["Kubernetes API 변경"] --> KA["Metadata 수준 control-plane audit"]
+  CTRL["Kubernetes API 변경"] --> KA["Metadata 수준<br/>control-plane audit"]
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -592,19 +753,34 @@ print(projection["contact_email"], event["decision"])
 
 ## Frame 4-1 | Level 2 Topic Cluster | 10일 안에 수직 MVP를 만들고 운영 조건을 합의하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Ten-day Vertical MVP`
+
+> 범위는 단일 공장으로 줄이되 ACL과 provenance는 미루지 않는다.
+
+- 첫날 접근권한과 데이터 owner 확인
+- 일자별 진입 조건이 있는 10일 제안 일정
+- 운영 owner·온콜·rollback 담당자에게 인계
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
-조감도를 거쳐 주황 영역으로 이동한다. 10일 timeline을 위에 놓고, 아래에는 `업무 성공 기준 → 작은 수직 경로 → 평가 → 제한 공개 → 운영 이관`을 그린다. scope를 넓히는 방향과 운영 수준을 높이는 방향을 서로 다른 축으로 표시한다. 발표 시간 2분.
+조감도를 거쳐 주황 영역으로 이동한다. 10일 timeline을 1주차(범위·데이터·권한·검색)와 2주차(응답·배포·운영·공개) 두 띠로 나누어, 업무 성공 기준에서 작은 수직 경로·평가·제한 공개·운영 인계로 가는 순서를 일자별로 보인다. 마지막에는 사용 결과와 장애 피드백으로 범위를 다시 합의하는 다음 반복을 붙인다. scope를 넓히는 일과 운영 수준을 높이는 일을 같은 일정에 섞지 않는다. 발표 시간 2분.
 
 ```mermaid
-flowchart LR
-  D["업무 과제와 권한 합의"] --> V["단일 공장 수직 MVP"]
-  V --> E["고정된 holdout과 실패 시험"]
-  E --> S["shadow와 현장 검토"]
-  S --> C["제한된 사용자 공개"]
-  C --> P["운영 게이트와 담당자 인수"]
-  P --> F["사용 결과와 장애 피드백"]
-  F --> D
+flowchart TB
+  subgraph W1["1주차 · 범위 · 데이터 · 권한 · 검색"]
+    direction LR
+    D1["D1<br/>과제 · owner<br/>접근 경로"] --> D2["D2<br/>표본 ·<br/>identity 매핑"] --> D3["D3<br/>멱등 수집 ·<br/>삭제 처리"] --> D4["D4<br/>IdP ·<br/>serving ACL"] --> D5["D5<br/>hybrid 비교 ·<br/>holdout"]
+  end
+  subgraph W2["2주차 · 응답 · 배포 · 운영 · 공개"]
+    direction LR
+    D6["D6<br/>인용 응답 ·<br/>read-only 도구"] --> D7["D7<br/>반입 묶음 ·<br/>내부 배포"] --> D8["D8<br/>관측 · 감사 ·<br/>복구 runbook"] --> D9["D9<br/>shadow ·<br/>현장 리뷰"] --> D10["D10<br/>제한 공개 ·<br/>운영 인계"]
+  end
+  N["다음 반복<br/>사용 결과와 장애 피드백으로 D1 범위 재합의"]
+  W1 --> W2 --> N
+  style W1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style W2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -625,7 +801,7 @@ flowchart LR
 | 7 | 반입 묶음과 내부 배포 설정 | 인터넷 차단 cold start와 재시작 확인 |
 | 8 | 관측·감사·백업·복구 runbook | 실제 복구 시간과 누락 범위 기록 |
 | 9 | shadow 실행과 현장 전문가 리뷰 | 업무 과제별 품질·지연 게이트 충족 |
-| 10 | 제한 공개, 이관 자료, 다음 backlog | 운영 owner·온콜·rollback 담당자 인수 |
+| 10 | 제한 공개, 이관 자료, 다음 backlog | 운영 owner·온콜·rollback 담당자에게 인계 |
 
 **[실전 코드 (Production-grade Code)]**
 
@@ -656,18 +832,34 @@ jobs:
 
 ## Frame 4-2 | Level 3 Deep Dive and Code | 평균 점수에 숨지 않는 품질과 배포 게이트
 
+**[화면 핵심 (On-screen Message)]**
+
+`Evaluation and Promotion Gates`
+
+> 평균이 아닌 질문 유형별 슬라이스 기준으로 승격을 판정한다.
+
+- 코드형·의미형 Hit@5 분리 평가
+- support rate와 coverage 동시 충족
+- ACL 누출 1건에도 승격 중단
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 승격 게이트로 확대한다. `코드 검사 → 데이터·모델 평가 → 내부 staging → canary → 운영`을 다섯 문으로 표시한다. 금지 접근 1건은 다른 품질 점수와 합산되지 않고 즉시 실패하는 별도 붉은 문으로 둔다. 발표 시간 3분.
 
 ```mermaid
-flowchart LR
-  B["고정된 코드와 의존성"] --> T["단위와 DB 통합 검사"]
-  T --> E["버전이 있는 holdout 평가"]
-  E --> A["ACL 누출 0건 게이트"]
-  A --> S["내부 staging와 장애 시험"]
-  S --> C["canary와 최소 관측 수"]
-  C --> P["승격 또는 이전 digest로 복귀"]
+flowchart TB
+  P["승격 또는 이전 digest로 복귀"]
+  B["고정된 코드와 의존성"]
+  T["단위와 DB 통합 검사"]
+  E["버전이 있는 holdout 평가"]
+  A["ACL 누출 0건 게이트"]
+  S["내부 staging와 장애 시험"]
+  C["canary와 최소 관측 수"]
+  B --> T --> E --> A --> S --> C --> P
+  %% 보이지 않는 연결: 뒤쪽 단계를 오른쪽 열에 아래에서 위로 배치해 U자 흐름을 만든다
+  P ~~~ C
+  C ~~~ S
+  S ~~~ A
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -681,10 +873,10 @@ flowchart LR
 | 게이트 | 제안 기준 | 실패했을 때의 조치 |
 | --- | --- | --- |
 | 코드형·의미형 Hit@5 | 각각 90% 이상 | 청크·분석기·retrieval 조정 후 재평가 |
-| 답변 support rate | 각 슬라이스 98% 이상 | context와 생성 정책 점검 |
+| 답변 support rate | 코드형·의미형 각 98% 이상 | context와 생성 정책 점검 |
 | 답변 coverage | 답변 가능한 각 슬라이스 80% 이상 | 과도한 보류 원인 분석 |
 | 근거 없는 질의의 보류율 | 95% 이상 | 근거 sufficiency 판정 조정 |
-| 권한 없는 정보의 노출 | 전체 평가에서 0건 | 승격 중단과 권한 경계 수정 |
+| 권한 없는 정보의 노출 | 전체 평가에서 누출 0건, 권한 없는 질의는 전건 보류 | 승격 중단과 권한 경계 수정 |
 | 응답 p95 | 전체와 답변 가능한 각 슬라이스 5초 이하 | 추론 큐·context·reranker 비용 조정 |
 
 **[실전 코드 (Production-grade Code)]**
@@ -712,21 +904,31 @@ report는 `dataset_version`, `artifact_digest`, `rows`를 가진다. 각 row는 
 
 ## Frame 4-3 | Level 3 Deep Dive and Code | 장애를 관측하고 복구 가능한 운영으로 전환하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Observability and Disaster Recovery`
+
+> 최신성·가용성·답변 품질을 나눠 보고 코드 rollback과 데이터 복구를 구분한다.
+
+- 1시간·5분 window의 burn rate 경보
+- 수집 지연과 GPU 추론 큐 관측
+- 복구 훈련으로 제안 RPO·RTO 실측
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 운영 피드백으로 확대한다. 같은 사용자 요청을 trace의 수집·검색·추론 구간으로 나누고, 오른쪽에 원인별 복구 동작을 붙인다. 배포 rollback 화살표와 데이터 replay 화살표를 구분한다. 발표 시간 2분.
 
 ```mermaid
 flowchart LR
-  O["Latency / error / lag / quality"] --> D["원인 분류"]
-  D --> I["수집 지연과 WAL 보관 확인"]
-  D --> R["검색 ACL과 인덱스 버전 확인"]
-  D --> L["추론 큐와 GPU 확인"]
-  D --> A["감사 outbox 적체 확인"]
-  I --> RE["복구 DB와 replay 비교"]
-  R --> RB["검증된 인덱스와 코드로 전환"]
-  L --> FB["근거 검색으로 제한 운영"]
-  A --> STOP["내구성 기준에 따라 접근 제한"]
+  O["Latency / error /<br/>lag / quality"] --> D["원인 분류"]
+  D --> I["수집 지연과<br/>WAL 보관 확인"]
+  D --> R["검색 ACL과<br/>인덱스 버전 확인"]
+  D --> L["추론 큐와<br/>GPU 확인"]
+  D --> A["감사 outbox<br/>적체 확인"]
+  I --> RE["복구 DB와<br/>replay 비교"]
+  R --> RB["검증된 인덱스와<br/>코드로 전환"]
+  L --> FB["근거 검색으로<br/>제한 운영"]
+  A --> STOP["내구성 기준에 따라<br/>접근 제한"]
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -771,20 +973,35 @@ groups:
 
 ## Frame 0-2 | Level 1 Overview | 네 기술 영역을 하나의 검증 가능한 서비스로 연결하기
 
+**[화면 핵심 (On-screen Message)]**
+
+`Integrated Production Architecture`
+
+> 코드 검증 뒤 고객 환경의 수용 시험을 통과한 범위만 확장한다.
+
+- 재전송에도 보존되는 상태
+- 권한과 출처를 검증한 근거 응답
+- 검증된 실행물과 운영 가능한 책임
+
 **[화면 시각화 가이드 (Visual Layout)]**
 
 처음의 전체 카메라 위치로 돌아온다. 처음에는 흐름만 보였던 네 영역 위에 각각 **재생 가능한 상태 · 허용된 근거 · 검증된 실행물 · 운영 가능한 책임**을 한 문장씩 겹친다. customer outcome을 맨 위에 두고 기술 선택이 그 결과로 연결되게 한다. 발표 시간 2분.
 
 ```mermaid
-flowchart LR
+flowchart BT
+  %% Bottom-up: customer outcome on top. Invisible links (~~~) pin the feedback node beside the chain
+  %% and the supply-chain node on the other side; their order decides the layout.
   S["원천 데이터와 고객 업무"] --> I["재전송에도 보존되는 상태"]
+  I ~~~ E["업무 평가와 장애 피드백"]
+  E --> S
+  G["출처를 검증한 응답"] --> U["더 빠른 근거 탐색과 판단 지원"]
   I --> R["사용자가 볼 수 있는 근거"]
-  R --> G["출처를 검증한 응답"]
-  G --> U["더 빠른 근거 탐색과 판단 지원"]
   D["검증된 실행물과 내부 운영"] --> I
   D --> G
-  U --> E["업무 평가와 장애 피드백"]
-  E --> S
+  R --> G
+  E ~~~ G
+  U --> E
+  I ~~~ D
 ```
 
 **[핵심 엔지니어링 분석 (Research & Considerations)]**
@@ -795,30 +1012,324 @@ flowchart LR
 
 **[실전 코드 (Production-grade Code)]**
 
-작업 폴더의 코드·DB 경계는 다음 명령과 같은 Python 호출로 검증한다. 실행기는 개인 Unix socket만 사용하는 임시 PostgreSQL을 만들고 테스트가 끝나면 제거한다. 테스트 통과가 실제 LLM 성능이나 고객 Kubernetes 배포 성공의 증거는 아니다.
+작업 폴더의 코드·DB 경계는 `scripts/check.py --all`로 검증한다. 실행기는 개인 Unix socket만 사용하는 임시 PostgreSQL과 비특권 LOGIN 계정을 만들고, 테스트가 끝나면 서버와 데이터를 제거한다. 아래는 네 영역의 불변식을 확인하는 테스트를 이름만 발췌한 2026년 11월 17일 실행 결과다. 전체 출력은 `docs/test-output.txt`에 있다. 테스트 통과가 실제 LLM 성능이나 고객 Kubernetes 배포 성공의 증거는 아니다.
 
-```python
-import subprocess
-import sys
+```text
+$ .venv/bin/python scripts/check.py --all
+test_concurrent_redelivery_has_one_effect ... ok          # 1 재전송
+test_stale_update_cannot_resurrect_tombstone ... ok       # 1 삭제
+test_transaction_rolls_back_if_audit_outbox_fails ... ok  # 1·3 감사
+test_rls_applies_before_python_ranking ... ok             # 2 권한
+test_output_revalidation_rejects_revocation_during_generation ... ok
+test_citation_bound_to_retrieved_version ... ok           # 2 인용
+test_tampered_manifest_fails_signature ... ok             # 3 반입
+test_quality_gate_baseline_and_leak_in_any_slice ... ok   # 4 게이트
+----------------------------------------------------------------------
+Ran 74 tests in 1.376s
 
-subprocess.run([sys.executable, "scripts/check.py", "--all"], check=True)
+OK
 ```
 
 **[발표자 노트 (Speaker Script)]**
 
 “전체 그림으로 돌아오면 네 영역이 따로 있는 기술 목록이 아니라 같은 사용자 신뢰를 지탱하는 경계라는 점이 보입니다. 데이터가 재처리에도 일관되어야 하고, 허용된 근거만 사용해야 하며, 그 로직을 고객 환경에서 검증된 실행물로 돌릴 수 있어야 합니다. 그리고 운영팀이 실패를 발견하고 복구할 수 있어야 합니다. FDE로서 제 역할은 이 제약을 고객의 업무 언어로 확인하고, 가장 작은 유효 범위에서 증명한 뒤 근거를 가지고 확장하는 것입니다. 다음 단계는 실제 고객 질의와 권한 조건으로 제한 공개의 수용 기준을 검증하는 일입니다.”
 
+## Frame 5-1 | Level 2 Topic Cluster | 고객 Discovery로 업무·권한·수용 기준을 먼저 합의하기
+
+**[화면 핵심 (On-screen Message)]**
+
+`Customer Discovery`
+
+> 첫 주 Discovery에서 합의한 권한과 수용 기준이 승격 게이트의 입력이 된다.
+
+- 속성별 권위 소스와 role별 문서 권한 확정
+- 정답·보류·거부 정의와 owner별 결정 기록
+- 합의된 수용 기준의 4-2 승격 게이트 반영
+
+**[화면 시각화 가이드 (Visual Layout)]**
+
+0-2의 전체 조감도에서 본편 캔버스 바깥의 별도 영역인 ‘현장 플레이북(2부 온보딩 확장)’으로 카메라를 옮긴다. 왼쪽의 다섯 역할 이해관계자 맵에서 중앙의 첫 주 Discovery 질문 카드로 초점을 옮긴 뒤, 각 답변이 owner가 지정된 결정 기록과 수용 기준 제안표로 바뀌어 4-2 승격 게이트로 흘러가는 실선 경로를 확대한다. 접근 승인 지연과 합의되지 않은 범위 확장은 붉은 점선 분기로 정상 흐름과 분리하고, 범위 확장 분기는 결정 기록의 재검토 조건으로 되돌린다. 발표 시간 3분.
+
+```mermaid
+flowchart TB
+  subgraph Discovery["1 첫 주 Discovery와 결정 기록"]
+    direction LR
+    S["업무 담당자 ·<br/>현장 엔지니어 · FDE"] --> Q["첫 주<br/>Discovery 질문"]
+    O["데이터 · 보안 ·<br/>플랫폼 owner"] --> Q
+    Q --> D["결정 기록<br/>선택 · 대안 · 재검토 · owner"]
+    O -. "접근 승인<br/>owner 지연" .-> H["임계경로 변경<br/>통합 미완료로 보고"]
+    Q -. "미합의 기준<br/>범위 확장" .-> R["재검토 조건으로<br/>범위 통제"]
+    R --> D
+  end
+  subgraph Gate["2 합의한 기준을 게이트로"]
+    direction LR
+    A["합의된 수용 기준 제안값"] --> G["4-2 승격 게이트"]
+  end
+  Discovery --> Gate
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class H,R fail
+  linkStyle 3,4 stroke:#b4483c
+  style Discovery fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Gate fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+```
+
+**[핵심 엔지니어링 분석 (Research & Considerations)]**
+
+- **시스템 구성요소:** 첫 주 Discovery에는 업무 담당자(정비 리더), 데이터 owner(ERP·정비 시스템·문서), 보안·플랫폼 담당자, 현장 정비 엔지니어, FDE가 참여한다. 정비 리더는 과제 우선순위와 정답 기준을, 데이터 owner는 원천 책임과 스키마를, 보안·플랫폼 담당자는 IdP·ACL·반입 경로를 맡는다. 현장 정비 엔지니어는 실제 질의 표현과 라벨 검토를 제공하고, FDE는 이 입력을 데이터 계약·평가셋·승격 게이트로 연결한다.
+- **핵심 고려사항:** FDE는 첫 주에 여섯 질문으로 모호함을 줄인다. 업무 성과를 무엇으로 비교할지(예: 기준 과제의 근거 탐색 시간과 정답 도달률), 속성별 authoritative source가 어느 시스템인지(예: 소유 공장은 ERP, 작업 완료는 정비 시스템, 점검 절차는 승인된 PDF 매뉴얼), “정답·보류·거부”가 각각 무엇인지, role별로 어떤 문서를 읽을 수 있는지, 응답 지연과 데이터 최신성 요구가 얼마인지, 온콜과 rollback 책임자가 누구인지 확인한다. “부산 공장 P-101의 반복 과열 원인과 점검 순서”도 이 답이 있어야 평가 가능한 과제가 된다.
+- **결정 기록과 책임:** 각 답변은 4-1의 결정 기록 형식(선택·버린 대안·이유·재검토 조건)에 역할 기반 owner를 더해 바로 남긴다. owner가 없는 결정은 재검토 조건이 발동해도 누가 다시 판단할지 정할 수 없다. `fde/release_gate.py`는 누락·빈 자료·표본 부족·기준 미달을 기계적으로 거부하지만, 무엇을 “정답”으로 인정하고 누가 holdout을 독립 라벨링할지는 고객과의 합의로 정한다.
+- **수용 기준 합의:** 합의한 품질·운영 요구는 4-2 승격 게이트의 입력이 된다. 출발점으로 제안하는 기준은 슬라이스당 최소 30건, 코드형·의미형 Hit@5 0.90, support rate 0.98, coverage 0.80, 근거 없는 질의의 보류율 0.95, 권한 누출 0건(권한 없는 질의는 모두 보류), 전체와 답변 가능한 슬라이스의 p95 5,000ms 이하다. 이 값은 예제 gate에 고정된 기준을 협의의 출발점으로 제안하는 것이다. 품질·지연 기준은 고객이 업무 위험과 비용에 따라 조정할 수 있지만, 권한 누출 0건과 권한 없는 질의의 전건 보류는 협상 대상이 아니다. 모든 변경은 새 결정 기록, gate 갱신과 재평가로 남긴다.
+- **일정 위험과 범위 통제:** 4-1 일정에서 첫날 확인할 접근권한과 데이터 owner가 늦어지면 임계경로가 바뀐다. 대기 중에는 합성 데이터로 UI·계약·배포 경로를 검증할 수 있지만 이를 “통합 완료”나 품질 근거로 보고하지 않는다. 추가 공장·설비군·write 기능 같은 scope creep은 조용히 받아들이지 않고, 결정 기록의 재검토 조건에 따라 다음 단계 과제로 분리하고 별도 수용 기준을 정한다.
+
+**[실전 코드 (Production-grade Code)]**
+
+아래는 첫 주 Discovery 결과를 정리한 결정 기록과 수용 기준 예시이며, 모든 값은 고객 합의 전의 가정·제안값이다. `acceptance`의 metric 키는 `fde/release_gate.py`가 반환하는 `metrics` 이름과 맞췄고, `min_examples_per_slice`와 `forbidden_answered`는 gate가 metric 없이 직접 검사하는 조건이다.
+
+```yaml
+id: "DR-001"
+status: "proposed"             # 역할별 승인 전 초안
+basis: "가정·제안값, 고객 합의 전"
+owner: "고객 정비 리더"
+approvers: { scope: "고객 정비 리더", source: "데이터 owner",
+             acl: "보안·플랫폼 담당자", release: "운영 owner" }
+consulted: ["현장 정비 엔지니어", "FDE"]
+choice: "한 공장·한 설비군의 read-only 정비 지원 MVP"
+authoritative_source: { asset_site: "erp", work_order_status: "cmms" }
+rejected_alternatives:
+  - "전 공장·설비군 일괄 연동과 작업 지시 write 기능"
+  - "합성 데이터 데모 통과만으로 승격"
+reason: "원천 책임과 권한 경계를 먼저 고정해야 4-2 게이트로 검증할 수 있다"
+review_when: "공장·설비군 추가, write 기능 요청, role 정책 변경 시"
+acceptance:                    # 모든 값은 제안값
+  min_examples_per_slice: 30   # factoid·semantic·unanswerable·forbidden 각각
+  factoid: { hit_at_5: 0.90, support_rate: 0.98, coverage: 0.80, p95_ms: 5000 }
+  semantic: { hit_at_5: 0.90, support_rate: 0.98, coverage: 0.80, p95_ms: 5000 }
+  correct_abstention: 0.95
+  leak_count: 0
+  forbidden_answered: 0        # 권한 없는 질의는 전건 보류
+  p95_ms: 5000
+```
+
+이 YAML은 저장소의 `fde/release_gate.py`가 읽는 설정 파일이 아니다. 현재 gate는 같은 기준값을 코드에 고정해 판정하므로, 합의로 기준을 바꾸면 새 결정 기록과 함께 gate 코드나 설정을 갱신하고 독립 라벨링된 holdout으로 다시 평가한다. 여기의 수치는 합의의 출발점이며 고객 환경에서 측정한 성능이 아니다.
+
+**[발표자 노트 (Speaker Script)]**
+
+“본편에서 기술 경계를 봤다면, 여기서부터는 2부 현장 플레이북으로 그 경계를 첫 주에 고객과 어떻게 합의하는지 보겠습니다. 저는 코드를 쓰기 전에 정비 리더, 데이터 owner, 보안·플랫폼 담당자, 현장 정비 엔지니어와 여섯 가지 질문부터 확인하겠습니다. 먼저 근거를 찾는 시간과 정답 도달률처럼 업무 성과를 무엇으로 비교할지 정하고, 설비 소유 공장은 ERP, 작업 완료는 정비 시스템처럼 속성별 authoritative source와 정답·보류·거부의 의미를 정의하겠습니다. role별 문서 권한, 허용 지연과 최신성, 온콜과 rollback 책임도 묻고, 답마다 owner와 재검토 조건이 있는 결정 기록으로 남기겠습니다. 화면의 Hit@5 0.90이나 p95 5초는 예제 gate에 고정된 값을 협의의 출발점으로 제안하는 것이고, 권한 누출 0건과 권한 없는 질의의 보류는 조정하지 않습니다. 코드는 평가 누락과 기준 미달을 승격 게이트에서 막아 줄 뿐, 무엇이 정답이고 누가 라벨링할지는 고객과 합의해야 합니다. 합의한 기준은 4-2의 승격 게이트에 반영하고, 기준이 바뀌면 gate를 고친 뒤 독립 평가 결과로 다시 판정하겠습니다.”
+
+## Frame 5-2 | Level 3 Deep Dive and Code | 오답 신고를 재현 기록으로 파이프라인 경계까지 좁히기
+
+**[화면 핵심 (On-screen Message)]**
+
+`Incident Replay`
+
+> 오답 조사는 답변 시점의 조건을 복원하고 처음 달라진 경계에서 시작한다.
+
+- 답변 시점의 버전과 위치 기록
+- 동일 권한의 격리된 replay
+- 재현 창은 가장 짧은 보관 기간(예: 백업 7일)
+
+**[화면 시각화 가이드 (Visual Layout)]**
+
+현장 플레이북에서 오답 신고와 복구용 replay 사이를 확대한다. 답변 당시의 최소 기록을 왼쪽에 고정하고, 복원한 환경에서 만든 기록을 오른쪽에 나란히 놓는다. data → policy → retrieval → generation 순서로 비교하며 최초 차이만 주황색으로 강조한다. 입력이 같은데 답변이 달라지는 경로는 기록 누락을 확인하는 붉은 점선으로 표시한다. 발표 시간 4분.
+
+```mermaid
+flowchart TB
+  subgraph Record["1 기록 찾기와 복원"]
+    direction LR
+    R["오답 신고와 request ID"] --> O["답변 시점의 최소 기록"] --> S["별도 snapshot · PITR 복원"]
+  end
+  subgraph Replay["2 조건 고정과 replay"]
+    direction LR
+    P["정책 · 검색 · 생성 artifact 고정"] --> E["ticket의 같은 질문 ·<br/>검증된 주체로 replay"] --> C["신고 기록과 replay 기록 localize 비교"]
+  end
+  subgraph Triage["3 경계별 조사"]
+    direction LR
+    B["data → policy → retrieval → generation"] --> H["최초 차이부터 조사 · 사람 검토"]
+    B -. "입력 동일 · 답변 상이" .-> M["누락 필드 기록 보완"]
+  end
+  Record --> Replay --> Triage
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class M fail
+  linkStyle 5 stroke:#b4483c
+  style Record fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Replay fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Triage fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+```
+
+**[핵심 엔지니어링 분석 (Research & Considerations)]**
+
+- **시스템 구성요소:** 답변을 만들 때 다음 필드를 재현 기록(`AnswerRecord`)으로 남긴다: request ID, tenant, HMAC으로 가명처리한 주체와 key ID, 서비스 DB의 복구 목표를 가리키는 snapshot ID, upstream 소스·epoch별 committed offset을 기록한다. 정책, index·embedding·reranker 버전, 생성에 전달한 순서 그대로의 `(chunk_id, version)`, decoding 파라미터를 포함한 prompt 버전, tokenizer와 양자화 형식까지 포함한 model digest를 함께 고정한다. 장애 뒤에는 현재 버전과 위치가 이미 이동하므로 “지금 다시 물어보기”로 당시 조건을 재현할 수 없다.
+- **핵심 고려사항과 replay:** 서비스 DB는 별도 복구 인스턴스에 기록된 복구 목표까지 복원한다. PITR이 재생하는 것은 서비스 DB의 WAL이므로, 복원된 소스 위치를 기록과 대조해 모자라면 upstream을 기록된 offset까지 따로 replay하고, DB 밖의 검색 인덱스는 `index_version` 보관본을 다시 적재한다. 당시 정책·embedding·reranker·prompt·모델 artifact를 고정한 뒤, 같은 질문과 검증된 같은 principal로 실행해 replay 기록을 만들고 `localize(reported, replayed)`로 비교한다. HMAC 가명 자체를 인증 자격증명으로 사용하지 않는다. DB 복원에 쓰는 continuous archiving과 PITR은 선택한 목표 시점까지 복구하는 PostgreSQL 기능이다. [PostgreSQL PITR](https://www.postgresql.org/docs/current/continuous-archiving.html)
+- **조사 순서와 증명의 한계:** 반환 순서는 data → policy → retrieval → generation이며 최초 차이부터 조사한다. 데이터나 권한 차이가 이후 검색·생성 차이를 만들 수 있으므로 첫 차이는 확정된 근본 원인이 아니다. 입력 차이가 없는데 답변이 달라지면 serving engine 버전·batch 설정 등 누락 필드를 기록에 보완한다. 같은 입력과 decoding 설정에서도 batch 구성이나 GPU 연산 순서에 따라 출력이 달라질 수 있으므로, 재현 대상은 답변 문자열이 아니라 근거와 권한 조건이다. 2-3의 인용 출처 검증은 의미적 정답을 보장하지 않으며, 4-2의 독립 평가와 중요한 점검 순서에 대한 사람 검토를 연결한다.
+- **최소화와 접근 경계:** 3-3의 HMAC 가명처리를 따르고, 기록에는 식별자·버전·위치와 보류 여부만 남긴다. 원문 질문·답변·청크 본문·원시 사용자 식별자는 넣지 않는다. tenant는 사용자 식별자가 아닌 조직 경계 ID라 원문으로 두고 접근 범위와 비교 거부에 쓴다. 질문이 필요하면 신고자가 접근 제한 ticket 경로로 다시 제공한다. key ID를 함께 남겨 키를 교체한 뒤에도 당시 키로 같은 가명을 다시 계산한다. 비교는 tenant가 다르면 우선 거부하고 request ID·key ID·주체가 달라도 거부한다. HMAC 키와 당시 주체의 검증된 매핑은 제한된 별도 절차로 관리한다.
+- **보관과 재현 창:** 재현 가능 기간의 상한은 기록 보관, snapshot·PITR용 WAL·백업 보관, upstream offset 보관, 이전 인덱스 보관, 모델·prompt 등 관련 artifact 보관 기간의 최솟값이다. 가정으로 기록은 90일, 백업은 7일이고 나머지가 충분해도 7일이 지나면 재현할 수 없다. 기록도 감사 이벤트처럼 고객의 보관·삭제 정책을 적용하며, 정기 복구 훈련으로 실제 복원 가능 범위를 확인한다.
+
+**[실전 코드 (Production-grade Code)]**
+
+`fde/provenance.py`는 기록 형식을 검사하고 입력이 달라진 경계를 순서대로 반환한다. 아래 fixture는 snapshot 복원 뒤 소스 위치가 더 진행되고 근거 순서도 바뀐 replay를 의도적으로 만들며, model digest는 같다.
+
+```python
+from dataclasses import replace
+from fde.provenance import AnswerRecord, localize
+
+reported = AnswerRecord(
+    request_id="12345678-1234-4abc-8def-1234567890ab",
+    tenant="fixture-factory", subject_pseudonym="0" * 64, key_id="fixture-v1",
+    snapshot_id="backup-v1", source_positions=(("erp", 120), ("manual", 8)),
+    policy_version="policy-v1", index_version="index-v1",
+    embedding_model="embedding-v1", reranker="reranker-v1",
+    prompt_version="prompt-decoding-v1", model_digest="sha256:" + "a" * 64,
+    evidence=(("manual-p1", 2), ("maintenance-p2", 1)),
+    abstained=False,
+)
+replayed = replace(
+    reported, source_positions=(("erp", 121), ("manual", 8)),
+    evidence=tuple(reversed(reported.evidence)),
+)
+print(localize(reported, replayed))  # ['data', 'retrieval']
+```
+
+`"0" * 64` 가명과 `"a" * 64` digest는 형식 검사용 fixture다. 코드는 실제 snapshot 복원, artifact 무결성 검증이나 HMAC 생성 여부를 증명하지 않는다. 버전 문자열이 4-2 release manifest의 불변 artifact를 가리키는지도 이 절차와 함께 별도로 검증한다.
+
+**[발표자 노트 (Speaker Script)]**
+
+“부산 공장 P-101 답변이 틀렸다는 신고가 오면, 먼저 그 답변의 request ID로 당시 기록을 찾겠습니다. 질문은 제한된 ticket에서 다시 받고, 당시 snapshot과 정책·인덱스·모델을 별도 복구 환경에 맞추겠습니다. 같은 주체로 replay한 결과에서 data와 retrieval이 달라졌다면, 더 앞선 data 경계부터 확인하겠습니다. 이 차이는 조사 순서이며 원인이 확정됐다는 뜻은 아닙니다. 입력이 같은데 답변이 달라지면 serving 설정을 더 기록해야 하는지 보고, 문장이 똑같은지보다 근거와 권한이 같은지를 재현 기준으로 삼겠습니다. 근거를 정확히 인용했는지는 코드로 확인하고, 실제 점검 순서가 맞는지는 현장 전문가와 평가하겠습니다. 마지막으로 기록 90일·백업 7일이라는 보관 가정에서는 재현 창도 최대 7일이므로, 보관과 삭제 정책까지 함께 합의하겠습니다.”
+
+## Frame 5-3 | Level 3 Deep Dive and Code | 용량 계산을 가정에서 측정으로 바꾸기
+
+**[화면 핵심 (On-screen Message)]**
+
+`Capacity Math`
+
+> 사용자 수는 유입률과 동시 요청으로 환산하고, 가정은 부하 시험 실측으로 교체한다.
+
+- 원시 벡터와 가중치·KV 분리
+- 평균 동시 요청과 버스트 구분
+- context·출력 상한과 부하 시험 실측
+
+**[화면 시각화 가이드 (Visual Layout)]**
+
+현장 플레이북의 용량 계산으로 이동한다. 사용자 수를 유입률과 체류시간으로 바꾸는 가지와 sequence당 KV를 구하는 가지를 나란히 확대한다. 두 가지가 GPU 메모리 예산에서 만나는 지점을 강조하고, 모든 숫자에는 가정 표식을 붙인다. 메모리 초과는 context·출력·동시성 상한을 조정한 뒤 예산 재계산으로 되돌리고, 마지막에 부하 시험 결과로 가정을 교체하는 화면을 보여준다. 발표 시간 3분.
+
+```mermaid
+flowchart TB
+  A["가정: 동시 사용자 50명 ·<br/>인당 분당 1회"] --> L["W에 p95 목표 5초 대입<br/>λW ≈ 4.17건"]
+  M["가정: 8B GQA · 8,192 tokens"] --> K["KV: sequence당 1GiB"]
+  G["가정: GPU 48GiB ·<br/>이용률 0.9"] --> P["가중치 · overhead · KV 합산"]
+  L --> P
+  K --> P
+  P --> T["피크 · 버스트 부하 시험"]
+  T --> U["p95 · 큐 · 메모리로 가정 교체"]
+  P -. "메모리 초과" .-> C["context · 출력 · 동시성 상한 조정"]
+  C --> P
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class C fail
+  linkStyle 7 stroke:#b4483c
+```
+
+**[핵심 엔지니어링 분석 (Research & Considerations)]**
+
+- **시스템 구성요소:** 청크 인덱스와 GPU 추론 서버를 분리 산정한다. 0-1의 규모 가정인 1,000,000개 × 768차원 × 4B는 정확히 3,072,000,000B, 약 3.07GB의 원시 벡터다. 인덱스·복제본·원문·메타데이터는 제외한다. 가정한 8B급 모델의 양자화 전 fp16 가중치는 8,000,000,000개 × 2B = 16GB이며, 양자화는 용량을 바꾸므로 품질 평가와 함께 결정한다. GB는 10의 거듭제곱, GiB는 2의 거듭제곱 단위로 구분한다.
+- **핵심 고려사항과 KV cache:** K와 V를 합한 토큰당 바이트는 `2 × layers × kv_heads × head_dim × bytes_per_value`다. 가정한 8B급 GQA 모델을 32 layers, 8 KV heads, head_dim 128, fp16 2B로 두면 131,072B/token, 즉 128KiB다. context 8,192 tokens를 가정하면 sequence당 1,073,741,824B = 1GiB다. GQA에서는 여러 query head가 더 적은 수의 KV head를 공유하므로 수식에는 attention heads 대신 `kv_heads`를 넣는다.
+- **유입률과 동시성:** Little's law `L = λW`는 정상 상태의 장기 평균이다. 사례 표(설계 입력)의 제안값인 동시 사용자 50명이 각자 분당 1회 질문한다고 가정하면 약 0.83req/s다. W는 큐를 포함한 평균 체류시간이므로, 같은 표와 4-2 게이트의 응답 p95 목표 5초를 대입한 약 4.17건(올림 5건)은 실측 평균 W로 교체할 거친 가정이다. 이 L은 검색 단계의 요청도 포함하므로 GPU에서 동시에 decode하는 sequence 수와 같지 않다. 동시 사용자 50명은 동시 요청 50건이 아니다. 평균은 피크가 아니므로 피크 유입률과 지연 예산으로 다시 산정하고 tail·큐 대기를 측정한다. 교대 시작에 50명이 한꺼번에 묻는 상황은 별도 버스트 시험이다.
+- **context와 출력 상한:** sequence당 KV를 제한하도록 prompt와 출력을 합친 최대 context를 정하고 출력 토큰도 제한한다. 긴 PDF는 필요한 청크를 검색해 전달하며, context 길이 축소는 메모리를 줄이는 조정 수단이다. serving engine 예시인 vLLM의 `--max-model-len`은 prompt와 출력을 포함한 context 길이이며, `--gpu-memory-utilization`은 model executor가 사용할 GPU 메모리 비율이다. [vLLM engine args](https://docs.vllm.ai/en/latest/configuration/engine_args.html) · [vLLM 메모리 절감](https://docs.vllm.ai/en/latest/configuration/conserving_memory.html)
+- **구현 차이와 실측 교체:** 가정한 48GiB GPU 1장과 이용률 0.9로 단일 GPU 예산을 계산한다. 이 사용 가능 메모리 안에서 activations·CUDA graphs·workspace를 합친 runtime overhead를 2GiB로 가정하며, 단편화와 paged KV block allocator는 산술식에 모델링하지 않는다. 실제 벡터·인덱스 크기로 저장량 가정, 적재한 가중치 바이트로 16GB 가정, 입력·출력 토큰 분포로 context 가정, 목표 동시성의 GPU 메모리와 runtime peak로 이용률·overhead 가정을 바꾼다. 피크 유입률·큐 대기·전체 응답 p95로 유입률·5초 목표·동시 요청 가정을 검증하고 조정한다. vLLM 문서는 KV cache 공간이 부족하면 요청을 preempt하고 나중에 재계산해 end-to-end 지연이 늘 수 있다고 설명한다. [vLLM 최적화와 preemption](https://docs.vllm.ai/en/latest/configuration/optimization.html)
+
+**[실전 코드 (Production-grade Code)]**
+
+`fde/capacity.py`로 위 가정의 원시 벡터·KV·평균 동시 요청을 계산하고, 가정한 48GiB GPU 1장의 메모리 예산을 확인한다. `sequences=50`은 별도 버스트 가정이며, `fits`는 산술상 메모리 적합 여부만 나타낸다.
+
+```python
+import math
+from fde.capacity import (
+    gpu_plan, in_flight_requests, kv_cache_bytes_per_token, vector_bytes,
+)
+
+vectors = vector_bytes(1_000_000, 768, 4)
+kv = kv_cache_bytes_per_token(32, 8, 128, 2)
+in_flight = in_flight_requests(50 / 60, 5.0)
+sequences = math.ceil(in_flight)
+assumptions = dict(
+    gpu_bytes=48 * 2**30, utilization=0.9,
+    weights_bytes=8_000_000_000 * 2, overhead_bytes=2 * 2**30,
+    kv_bytes_per_token=kv, context_tokens=8_192,
+)
+plan = gpu_plan(**assumptions, sequences=sequences)
+burst = gpu_plan(**assumptions, sequences=50)
+print(f"vectors={vectors} B, kv={kv} B/token, in_flight={in_flight:.2f}")
+print(f"fits={plan.fits}, headroom={plan.headroom_bytes} B, max_sequences={plan.max_sequences}")
+print(f"burst_fits={burst.fits}, headroom={burst.headroom_bytes} B")
+```
+
+`sequences`에 넣은 5는 검색 단계 요청까지 포함한 평균 L의 올림이며 GPU의 순간 동시 sequence 수가 아니다. 가정으로 계산된 `max_sequences`는 모든 sequence가 context 상한까지 찼을 때의 메모리 한도다. 처리량·p95·큐 대기나 실제 allocator의 수용량을 보장하지 않으므로, 목표 동시성 및 버스트에서 부하 시험으로 확인한다.
+
+**[발표자 노트 (Speaker Script)]**
+
+“동시 사용자 50명이라는 요구를 받으면, 먼저 한 분이 얼마나 자주 질문하고 교대 때 얼마나 몰리는지 확인하겠습니다. 가정한 인당 분당 한 번에 p95 목표 5초를 대입하면 평균 약 4.2건이지만, 이 평균이 버스트를 감당한다는 보장은 없습니다. 0-1에서 계산한 약 3.07GB도 원시 벡터만의 가정값이라서 인덱스와 원문은 별도로 측정하겠습니다. 가정한 GQA 구성에서는 context 상한을 채운 sequence 하나가 KV만 1GiB이므로, 긴 PDF를 통째로 넣기보다 필요한 청크와 출력 상한을 정하겠습니다. 코드의 fits는 가정한 가중치와 overhead를 뺀 산술 결과이며 응답 속도까지 보장하지는 않습니다. 실제 적재 메모리와 토큰 분포로 입력값을 바꾸고, 목표 동시성의 p95·큐 대기·GPU 메모리로 조정하겠습니다. 마지막으로 50명이 한꺼번에 묻는 시험을 따로 돌려서 상한과 대기 정책을 고객 운영팀과 합의하겠습니다.”
+
 ## 면접 후속 질문과 설계 판단의 근거
 
 | 질문 | 답변의 중심 논리 |
 | --- | --- |
-| 왜 처음부터 Kafka와 복잡한 스트리밍 체계를 모두 도입하지 않습니까 | 변경량·최신성·재생 요구가 선택 기준이다. 작은 pilot은 내구성 있는 batch manifest로도 가능하다. CDC가 필요하면 소스 부하·WAL 보관·offset 복구를 운영할 수 있어야 한다. |
-| 온톨로지와 일반적인 정규화 테이블의 차이는 무엇입니까 | 저장 형태보다 업무 의미, 관계, source 책임, action의 불변식과 권한을 재사용 가능한 계약으로 만드는 점을 설명한다. 제품 기능이 필요해지기 전부터 거대한 그래프 플랫폼을 강제하지 않는다. |
-| 권한을 필터하면 recall과 응답시간이 나빠지지 않습니까 | 실제로 그럴 수 있다. 보안 경계를 고정한 상태에서 ACL 선택도별로 정확 검색·partition·ANN 탐색량을 비교한다. 보안 조건을 낮춰 성능 문제를 해결하지 않는다. |
-| 인용이 있는데도 잘못된 답변이면 어떻게 합니까 | 인용 provenance와 semantic support를 구분한다. 원문과 연결돼도 의미를 반대로 말할 수 있으므로 claim별 독립 평가와 고영향 결정의 사람 검토가 필요하다. |
-| 도구가 두 번 호출되어 작업 지시가 중복되면 어떻게 합니까 | read-only MVP에서 시작한다. 쓰기 도입 시 업무 action의 idempotency key·예상 객체 버전·승인 상태를 하나의 트랜잭션 경계로 강제한다. 네트워크 재시도를 곧바로 업무 재실행으로 해석하지 않는다. |
-| 공장별 데이터가 커지면 무엇부터 바꿉니까 | 수집 lag, 허용 후보 수, 검색 지연, inference 큐를 나눠 본다. 원인이 검색이면 인덱스와 partition, 추론이면 토큰·배치·GPU 용량을 조정한다. |
-| 두 주 후 바로 전체 운영을 약속할 수 있습니까 | 범위가 합의된 제한 MVP와 전체 운영 승인은 다른 결과다. 실제 데이터 접근·보안·복구·평가 게이트를 통과한 범위만 공개하고 미통과 항목의 owner와 다음 행동을 명확히 한다. |
+| 왜 처음부터 Kafka와 복잡한 스트리밍 체계를 모두 도입하지 않습니까 | 변경량·최신성·재생 요구가 선택 기준이다. 작은 pilot은 내구성 있는 batch manifest로도 가능하다. CDC가 필요하면 소스 부하·WAL 보관·offset 복구를 운영할 수 있어야 한다. (1-2, 1-3 참조) |
+| 온톨로지와 일반적인 정규화 테이블의 차이는 무엇입니까 | 저장 형태보다 업무 의미, 관계, source 책임, action의 불변식과 권한을 재사용 가능한 계약으로 만드는 점을 설명한다. 제품 기능이 필요해지기 전부터 거대한 그래프 플랫폼을 강제하지 않는다. (1-1 참조) |
+| 권한을 필터하면 recall과 응답시간이 나빠지지 않습니까 | 실제로 그럴 수 있다. 보안 경계를 고정한 상태에서 ACL 선택도별로 정확 검색·partition·ANN 탐색량을 비교한다. 보안 조건을 낮춰 성능 문제를 해결하지 않는다. (2-1, 2-2 참조) |
+| 인용이 있는데도 잘못된 답변이면 어떻게 합니까 | 인용 provenance와 semantic support를 구분한다. 원문과 연결돼도 의미를 반대로 말할 수 있으므로 claim별 독립 평가와 고영향 결정의 사람 검토가 필요하다. (2-3, 4-2 참조) |
+| 도구가 두 번 호출되어 작업 지시가 중복되면 어떻게 합니까 | read-only MVP에서 시작한다. 쓰기 도입 시 업무 action의 idempotency key·예상 객체 버전·승인 상태를 하나의 트랜잭션 경계로 강제한다. 네트워크 재시도를 곧바로 업무 재실행으로 해석하지 않는다. (2-3 참조) |
+| 공장별 데이터가 커지면 무엇부터 바꿉니까 | 수집 lag, 허용 후보 수, 검색 지연, inference 큐를 나눠 본다. 원인이 검색이면 인덱스와 partition, 추론이면 토큰·배치·GPU 용량을 조정한다. (2-1, 4-3, 5-3 참조) |
+| 두 주 후 바로 전체 운영을 약속할 수 있습니까 | 범위가 합의된 제한 MVP와 전체 운영 승인은 다른 결과다. 실제 데이터 접근·보안·복구·평가 게이트를 통과한 범위만 공개하고 미통과 항목의 owner와 다음 행동을 명확히 한다. (4-1, 4-2 참조) |
+| 외부 API를 쓸 수 없는 폐쇄망에서 로컬 LLM은 어떤 기준으로 고릅니까 | 라이선스와 반입 검증 통과 여부, 한국어·설비 용어 처리 품질, 양자화에 따른 품질 손실, 가중치·KV cache·런타임 여유분을 포함한 GPU 메모리와 목표 context 길이·동시 요청 수에서의 p95를 함께 본다. 유력 모델을 임의로 단정하지 않고 동일한 튜닝용 검증셋과 deadline 조건에서 support rate, coverage, p95를 비교해 후보를 좁히고, 최종 후보만 고정 holdout으로 확인한다. 선정 후에는 가중치뿐 아니라 tokenizer·config·라이선스까지 서명된 release manifest로 반입하고 인터넷 차단 cold start를 검증한다(3-1, 4-2, 5-3 참조). |
+| 청크 크기와 분할 전략은 어떻게 정합니까 | 고정 글자 수나 토큰 수를 정답으로 두지 않고 매뉴얼의 절·표·점검 단계와 설비 코드 맥락이 끊기지 않게 문서 구조 기준으로 나눈다. 후보 전략은 동일한 튜닝용 검증셋에서 코드형·의미형 Hit@5와 context 예산 내 support rate를 비교해 고르며, 정답 근거는 청크 ID가 아니라 문서 버전과 절·페이지 구간으로 라벨링해야 청크 경계가 달라도 같은 기준으로 비교할 수 있다. 청크 전략 변경은 곧 검색 단위 변경이므로 인덱스 재생성과 고정 holdout 재평가를 거쳐 승격한다(2-1, 4-2 참조). |
+| 평가셋은 누가 어떻게 라벨링합니까 | 실제 질의를 바탕으로 설비·안전 의미를 아는 현장 전문가가 라벨 가이드에 따라 정답 근거와 핵심 주장별 support를 판정하고, 권한 없음 질의의 허용 여부는 보안·플랫폼 담당자가 정책 기준으로 정한다. 사전에 정한 표본은 두 사람이 독립 라벨링해 조정 전 일치율과 불일치 유형을 기록하고 가이드를 보완하며, 답변 모델의 자기 평가만으로 support나 정답 여부를 확정하지 않는다. 튜닝용 검증셋과 분리된 holdout은 버전을 고정해 최종 승격과 회귀 판정에만 사용한다(4-2, 5-1 참조). |
+| 운영 비용은 어떻게 산정하고 통제합니까 | 폐쇄망 비용은 GPU·서버의 감가상각이나 임대료, 전력·운영 인력 같은 고정비와 OCR·embedding·reranker·추론 계산량, 벡터·원문·감사 로그 저장 용량으로 분해하고, 큐 대기는 비용 단위가 아니라 용량 부족 신호로 관리한다. 초기에는 동시 사용자 수와 실제 동시 요청 수를 구분해 일일 질의량·토큰 길이·배치 효율 가정으로 제안 계산을 세우고, 파일럿에서 관측한 토큰·지연·사용률 측정치로 교체한다. 요청별 context·토큰 상한에 더해 요청률·재시도·재임베딩 작업 예산을 두고, 청크 해시 비교로 불필요한 재임베딩을 줄인다(0-1, 5-3 참조). |
+| 고객의 데이터 접근 승인이 늦어지면 일정은 어떻게 관리합니까 | 접근 요청마다 승인 담당자·필요 증적·막힌 작업·다음 확인 시점을 기록해 데이터 접근과 owner 확보가 임계경로의 어디를 막는지 드러낸다. 일정은 승인 대기와 구현 작업을 분리해 관리하고, 승인 시점에 따라 가능한 검증 범위와 목표 일자를 다시 제안한다. 합성 데이터 검증과 실제 데이터 검증 결과는 별도 항목으로 보고하고, 미연결 구간의 owner와 재개 조건을 명시한다(4-1, 5-1 참조). |
+| 한국어 형태소와 영문 혼합 매뉴얼은 어떻게 검색합니까 | `fde/retrieval.py`의 단순 정규식 tokenizer는 “펌프를” 같은 어절을 조사째 한 토큰으로 두는 예제용이며 실제 한국어 검색 성능의 근거로 쓰지 않는다. 현장 적용에서는 한국어 형태소 분석과 동의어 사전, `P-101`·`ZX-19` 같은 설비·에러 코드 원형 보존을 결합하고 혼합 언어 매뉴얼과 질의에 맞는 한국어·다국어 embedding 모델을 검증한다. 모든 변경은 질의와 문서에 동일 버전 분석기를 적용해 인덱스를 다시 만들고, 코드형·의미형 튜닝용 검증셋으로 비교한 뒤 고정 holdout으로 승격을 판정한다(2-1, 4-2 참조). |
+| reranker 도입 여부는 어떻게 판단합니까 | reranker 없는 hybrid(BM25+dense+RRF) 결과를 기준선으로 먼저 측정하고, 도입 시에도 RLS·ACL을 통과한 허용 후보만 rerank한다. 같은 튜닝용 검증셋과 예컨대 200ms 같은 제안 지연 예산 안에서 Hit@5·support rate 개선 폭이 추가 GPU 자원과 p95 증가 비용을 정당화할 때만 채택한다. 개선이 미미하거나 전체 5초 제안 deadline을 위협하면 끄거나 상위 후보 수만 조정한다(0-1, 2-1, 4-2 참조). |
+| 프롬프트나 모델 설정만 바꿔도 새 릴리스로 취급합니까 | 같은 코드 이미지라도 prompt·모델·embedding·인덱스·정책 버전이 달라지면 별도 릴리스로 다룬다. 모든 구성 버전을 하나의 release manifest로 묶고 고정 holdout 평가와 ACL 누출 0건 게이트를 다시 통과해야 승격한다. 운영 반영도 canary 최소 관측 수와 중단 기준을 거쳐 진행하고, 중단 시에는 schema 호환성과 현재 ACL·삭제 상태 반영이 확인된 이전 manifest로 복귀한다(4-2, 4-3 참조). |
+
+## 고객 상황 롤플레이
+
+FDE 면접과 현장 대응에서 마주치기 쉬운 고객 압박·보안·장애·권한 요구 상황을 발표 프레임과 연결해 정리한 연습 시나리오다. 각 답변은 가능한 범위와 검증 조건, 책임 경계를 숨기지 않고 30초 안에 전달하는 데 초점을 둔다.
+
+### 1. 고객 임원이 2주 안에 전 공장 확대를 요구한다
+
+- **상황:** 파일럿 초기에 고객 임원이 두 주 안에 모든 공장과 설비로 서비스를 확대해 달라고 요구한다. 아직 공장별 데이터 owner, 접근 권한 체계, 현장 평가 기준도 확정되지 않은 상태다.
+- **먼저 확인할 질문:**
+  - 2주 뒤에 임원께서 확인하고 싶은 업무 결과는 무엇입니까?
+  - 공장별로 ERP·정비 시스템의 데이터 owner와 보안 승인 담당자가 이미 지정되어 있습니까?
+  - 공장마다 문서 권한(ACL) 체계와 정답 기준이 같습니까, 다릅니까?
+- **30초 답변:** “전 공장으로 확대하려는 목표에는 저도 공감합니다. 다만 두 주는 합의된 단일 공장과 설비군에서 권한·근거·배포 경로가 끝까지 도는 제한 MVP를 검증하는 시간 상자이지, 전 공장 전체 운영 승인을 보장하는 기간이 아닙니다. 저는 첫날 공장별 데이터 owner와 수용 기준을 먼저 확인하고, 1차 공장에서 holdout 품질·ACL 누출 0건 게이트와 복구 시험을 통과한 뒤 다음 공장으로 단계적으로 확장하겠습니다. 접근 승인이 늦어지는 공장은 미연결 상태와 일정을 투명하게 분리해 보고드리겠습니다.” (4-1, 4-2, 5-1 참조)
+- **피해야 할 답변:** ‘네, 2주면 전 공장 다 됩니다’처럼 권한·데이터 통합·운영 게이트 검증 없이 일정을 무조건 약속해 나중에 일정 붕괴와 보안 생략을 부른다.
+
+### 2. 보안팀이 원문(문서·로그) 반출을 거부한다
+
+- **상황:** 고객 보안팀이 정비 매뉴얼 원문, 작업 이력, 사용자 질문·응답 로그가 고객사 폐쇄망 밖으로 나가는 것을 전면 거부한다. 원격 디버깅이나 외부 클라우드 모델 평가도 허용되지 않는다.
+- **먼저 확인할 질문:**
+  - 원문과 로그는 고객 경계 안에 두고, 서명된 실행물을 내부 레지스트리로 반입해 안에서 실행·평가하는 방식은 허용됩니까?
+  - 문제 분석이나 품질 보고를 위해 집계 지표나 오류 코드·버전 정보 중 어디까지 반출할 수 있습니까?
+  - 로그 필드 allowlist와 HMAC 가명처리 정책을 함께 검토해 주실 보안 담당자는 누구입니까?
+- **30초 답변:** “보안팀 원칙대로 원문과 로그를 밖으로 꺼내 달라고 요청하지 않겠습니다. 서명된 release manifest와 검증된 이미지를 내부 레지스트리로 반입해 수집·검색·평가·추론을 모두 고객 폐쇄망 안에서 실행하겠습니다. 내부 로그에도 질문·본문·응답·Authorization header는 기본 수집하지 않고, latency·오류 코드·버전 같은 운영 기록과 HMAC으로 가명처리한 감사 이벤트를 필드 allowlist로 나눠 남기겠습니다. 밖으로는 재식별 위험을 검토해 고객이 승인한 집계 지표와 오류 코드·버전만 공유하고, 원문 확인은 고객 경계 안에서만 하겠습니다.” (3-1, 3-3 참조)
+- **피해야 할 답변:** 원문이나 프롬프트 로그를 빼줘야만 모델을 튜닝할 수 있다고 맞서거나, 임시 디버깅을 이유로 보안 경계를 우회하는 예외를 요구한다.
+
+### 3. 데모 중 모델이 P-101 질문에 틀린 답을 한다
+
+- **상황:** 현장 엔지니어 대상 데모에서 “부산 공장 P-101의 반복 과열 원인과 점검 순서는?”이라는 질문에 모델이 잘못된 설비 상태나 구버전 점검 절차를 답한다. 현장에서 즉시 신뢰가 흔들리는 상황이다.
+- **먼저 확인할 질문:**
+  - 현장에서 보시기에 방금 답변에서 틀린 부분은 설비 매핑, 최신 정비 이력·문서 버전, 아니면 모델의 해석 중 어느 쪽입니까?
+  - 이 요청의 trace와 재현 기록(snapshot·소스 위치, 정책·인덱스·모델·prompt 버전, 근거 청크)을 바로 확인해 어느 경계에서 처음 달라졌는지 함께 보시겠습니까?
+  - 재시연 전에 이 사례를 회귀 평가 세트에 추가하고 다시 확인하는 일정으로 잡아도 되겠습니까?
+- **30초 답변:** “방금 답변은 점검 판단에 사용하지 말아 주십시오. 점검 순서는 승인된 최신 매뉴얼을 현장 담당자와 함께 확인하겠습니다. 그다음 이 요청의 재현 기록으로 당시 snapshot·소스 위치와 정책·인덱스·embedding·reranker·모델·prompt 버전을 고정해 replay하고, data → policy → retrieval → generation 순서로 처음 달라진 경계부터 조사하겠습니다. 이 질문과 기대 근거는 회귀 평가 세트에 추가하고, 수정 후에는 손대지 않은 고정 holdout과 전체 게이트를 다시 통과한 뒤에 재시연하겠습니다.” (0-1, 4-2, 5-2 참조)
+- **피해야 할 답변:** LLM 특성상 가끔 틀릴 수 있다며 넘기거나, 원인 경계와 버전 추적 없이 프롬프트만 즉흥 수정해 다시 데모하려 한다.
+
+### 4. 현장 팀이 agent에게 작업 지시 생성(쓰기) 권한을 요구한다
+
+- **상황:** 현장 정비 팀이 근거 조회에 만족하며 AI agent가 곧바로 정비 시스템에 작업 지시(WorkOrder)를 생성하고 확정까지 해 주기를 요구한다. 현재 아키텍처는 `search`만 허용하는 read-only MVP다.
+- **먼저 확인할 질문:**
+  - 작업 지시를 자동 생성할 때 잘못된 입력이나 중복 호출이 발생하면 현장 안전과 비용에 어떤 영향이 있습니까?
+  - 기존 정비 시스템에서 작업 지시 쓰기를 허용할 별도 API 권한, idempotency key, 예상 객체 버전 검증 지원이 준비되어 있습니까?
+  - 1단계로 agent가 작업 지시 초안과 근거만 만들어 주고, 최종 확정은 현장 담당자가 기존 시스템에서 승인하는 흐름으로 시작할 수 있습니까?
+- **30초 답변:** “현장의 입력 부담을 줄이려는 요구는 충분히 이해합니다. 다만 현재 MVP는 읽기 전용 검색 도구만 허용해 환각이나 문서 내 악성 지시가 설비·작업 변경으로 번지지 않게 막고 있습니다. 저는 1단계로 agent가 근거가 붙은 작업 지시 초안만 제안하고 사람이 기존 정비 시스템에서 최종 승인하는 방식을 권하겠습니다. 실제 쓰기 경로는 정비 시스템이 별도 action 권한, 사람 승인 상태, 예상 객체 버전과 idempotency key를 한 번의 원자적 처리로 검증할 수 있는지 확인하고, 중복·재시도 시험을 통과한 뒤에 도입하겠습니다.” (2-3, 5-1 참조)
+- **피해야 할 답변:** 에이전트에게 정비 시스템 쓰기 도구나 임의 API 호출 권한을 바로 열어 주면서 프롬프트 지시만으로 중복이나 오작동을 막겠다고 장담한다.
 
 ## 실행 코드와 검증 범위
 
@@ -833,6 +1344,9 @@ subprocess.run([sys.executable, "scripts/check.py", "--all"], check=True)
 | 오프라인 반입 검증 | `fde/bundle.py` | 실제 서명 검증, manifest·파일 변조, 만료·release 재생·경로 이탈 거부 |
 | 배포와 관측 예제 | `deploy/render.py`, `deploy/audit-policy.yaml`, `deploy/alerts.yaml` | digest 요구·YAML 생성·제한된 pod와 네트워크 규칙 |
 | 품질 게이트 | `fde/release_gate.py` | 누락·NaN·중복·slice 회귀·과도한 보류·전체 및 유형별 p95·누출 실패 |
+| 오답 재현 기록 | `fde/provenance.py` | 기록 형식·가명·digest 검증, 경계 순서의 차이 반환, 다른 tenant·요청·주체·key 비교 거부 |
+| 용량 산정 | `fde/capacity.py` | 원시 벡터·KV cache 바이트, Little's law 평균 동시 요청, 단일 GPU 메모리 예산과 입력 검증 |
+| 발표 빌드 | `scripts/build_pages.py`, `scripts/deck.py`, `tests/test_pages.py` | 프레임 구조·화면 문구 길이, 줌 캔버스의 카메라 대상과 세 경로 |
 | 자동 검증 | `scripts/check.py`, `.github/workflows/check.yml` | 임시 실제 DB를 포함한 반복 가능한 로컬 검사 |
 
 실제 고객 연결에서 추가로 검증할 항목은 IdP 토큰 검증과 tenant 매핑, 실제 embedding·reranker·LLM, 대규모 ACL 검색 backend, 원천 수집 connector와 quarantine, chunk·권한 변경 전파와 실제 응답 경로의 재검증 연결, outbox exporter·WORM 보관, 내부 TLS와 CNI 통신, cold start, backup/PITR, canary 운영이다. 각각 위 프레임의 설계와 수용 조건에 연결되며, 로컬 코드 테스트가 그 완료를 대신하지 않는다.
@@ -857,4 +1371,8 @@ subprocess.run([sys.executable, "scripts/check.py", "--all"], check=True)
 | [OpenTelemetry Sensitive Data](https://opentelemetry.io/docs/security/handling-sensitive-data/) | 텔레메트리 최소화와 단순 해시의 한계, 3-3 |
 | [Google SRE SLO Alerting](https://sre.google/workbook/alerting-on-slos/) | multi-window burn rate와 저트래픽 고려, 4-3 |
 | [Prometheus Histograms](https://prometheus.io/docs/practices/histograms/) | histogram 기반 지연시간 집계, 4-3 |
+| [PostgreSQL PITR](https://www.postgresql.org/docs/current/continuous-archiving.html) | base backup과 WAL 재생으로 선택한 시점까지 복구, 5-2 |
+| [vLLM engine args](https://docs.vllm.ai/en/latest/configuration/engine_args.html) | `--max-model-len`의 범위와 `--gpu-memory-utilization`의 의미, 5-3 |
+| [vLLM 메모리 절감](https://docs.vllm.ai/en/latest/configuration/conserving_memory.html) | context 길이와 동시 sequence 상한으로 메모리 사용 축소, 5-3 |
+| [vLLM 최적화와 preemption](https://docs.vllm.ai/en/latest/configuration/optimization.html) | KV cache 부족 시 preemption과 재계산에 따른 지연 증가, 5-3 |
 | [Prezi 이미지 형식](https://support.prezi.com/hc/en-us/articles/8285064300183-Adding-and-using-the-Bynder-integration) | Present로 옮길 도식의 PNG 선택 |

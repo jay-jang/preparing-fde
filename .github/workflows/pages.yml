@@ -6,6 +6,8 @@ on:
     paths:
       - 'web/**'
       - 'scripts/build_pages.py'
+      - 'scripts/deck.py'
+      - 'scripts/build_kit.py'
       - 'requirements-pages.txt'
       - 'docs/fde-prezi-ko.md'
       - 'assets/diagrams/**'
@@ -31,6 +33,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements-pages.txt
       - run: python scripts/build_pages.py
+      - run: python scripts/build_kit.py
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
           path: build/pages

@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph Discovery["1 첫 주 Discovery와 결정 기록"]
+    direction LR
+    S["업무 담당자 ·<br/>현장 엔지니어 · FDE"] --> Q["첫 주<br/>Discovery 질문"]
+    O["데이터 · 보안 ·<br/>플랫폼 owner"] --> Q
+    Q --> D["결정 기록<br/>선택 · 대안 · 재검토 · owner"]
+    O -. "접근 승인<br/>owner 지연" .-> H["임계경로 변경<br/>통합 미완료로 보고"]
+    Q -. "미합의 기준<br/>범위 확장" .-> R["재검토 조건으로<br/>범위 통제"]
+    R --> D
+  end
+  subgraph Gate["2 합의한 기준을 게이트로"]
+    direction LR
+    A["합의된 수용 기준 제안값"] --> G["4-2 승격 게이트"]
+  end
+  Discovery --> Gate
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class H,R fail
+  linkStyle 3,4 stroke:#b4483c
+  style Discovery fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Gate fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

@@ -1,15 +1,25 @@
-"""Build the Korean presentation reader for GitHub Pages, without runtime CDNs."""
+"""Build the Prezi-style deck (index.html) and the handout reader (reader.html) without runtime CDNs."""
 from html import escape
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
+import sys
 
 import markdown
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import deck  # noqa: E402  (sibling module)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'build/pages'
 SOURCE = ROOT / 'docs/fde-prezi-ko.md'
+FRAME = re.compile(r'^## Frame (\d-\d) \| (Level ([123])[^|]*?) \| (.+)$', re.MULTILINE)
+MARKER = re.compile(r'^\*\*\[([^\]\n(]+?) \(([^)\n]+)\)\]\*\*$', re.MULTILINE)
+SECTIONS = {'화면 핵심': 'onscreen', '화면 시각화 가이드': 'layout', '핵심 엔지니어링 분석': 'analysis',
+            '실전 코드': 'code', '발표자 노트': 'speaker'}
+FENCE = re.compile(r'(<!-- deck -->\n+)?```(\w+)\n([\s\S]*?)\n```')
 
 
 def render(text):
@@ -17,59 +27,137 @@ def render(text):
     return re.sub(r'(<table>[\s\S]*?</table>)', r'<div class="table-scroll">\1</div>', result)
 
 
+def png_size(path):
+    header = path.read_bytes()[:24]
+    if header[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError(f'{path} is not a PNG')
+    return struct.unpack('>II', header[16:24])
+
+
+def parse_onscreen(key, text):
+    kicker = re.search(r'^`([^`\n]+)`$', text, re.MULTILINE)
+    message = ' '.join(line[1:].strip() for line in text.splitlines() if line.startswith('>'))
+    points = [line[2:].strip() for line in text.splitlines() if line.startswith('- ')]
+    if not kicker or not message or len(points) != 3:
+        raise ValueError(f'frame {key}: on-screen block needs a `kicker`, a > message and three - points')
+    return kicker[1], message, points
+
+
+def parse_frame(key, level, level_label, title, body):
+    found = list(MARKER.finditer(body))
+    names = [SECTIONS.get(match[1]) for match in found]
+    expected = ['onscreen', 'layout', 'analysis', 'code', 'speaker']
+    if names != expected:
+        raise ValueError(f'frame {key}: sections must be {expected}, found {names}')
+    sections = {name: body[match.end():(found[i + 1].start() if i + 1 < len(found) else len(body))].strip()
+                for i, (name, match) in enumerate(zip(names, found))}
+    kicker, message, points = parse_onscreen(key, sections['onscreen'])
+    minutes = re.search(r'발표 시간 (\d+)분', sections['layout'])
+    mermaid = re.search(r'```mermaid\n([\s\S]*?)\n```', sections['layout'])
+    image = ROOT / f'assets/diagrams/frame-{key}.png'
+    if not minutes or not mermaid or not image.is_file():
+        raise ValueError(f'frame {key}: missing time, Mermaid diagram or rendered PNG')
+    blocks = [match for match in FENCE.finditer(sections['code'])]
+    if not blocks:
+        raise ValueError(f'frame {key}: missing code block')
+    chosen = next((block for block in blocks if block[1]), blocks[0])
+    # Label the card's code with a repository file only when the named file's type matches the block.
+    extensions = {'python': ('.py',), 'sql': ('.sql',), 'yaml': ('.yaml', '.yml')}.get(chosen[2], ())
+    source = next((match for match in re.finditer(r'`((?:fde|sql|deploy|scripts|tests|\.github)/[\w./-]+)`',
+                                                   sections['code']) if match[1].endswith(extensions)), None)
+    width, height = png_size(image)
+    diagram = {'src': f'assets/diagrams/frame-{key}.png', 'w': width, 'h': height, 'ratio': width / height}
+    vector = image.with_suffix('.svg')
+    if vector.is_file():
+        svg = vector.read_text(encoding='utf-8')
+        box = re.search(r'viewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"', svg)
+        diagram.update(svg=svg, ratio=float(box[1]) / float(box[2]))
+    layout_text = sections['layout'][:mermaid.start()] + sections['layout'][mermaid.end():]
+    return {
+        'key': key, 'cluster': int(key[0]), 'level': int(level), 'level_label': level_label.strip(),
+        'title': title.strip(), 'kicker': kicker, 'message': message, 'points': points,
+        'minutes': int(minutes[1]), 'mermaid': mermaid[1], 'sections': sections, 'body': body,
+        'diagram': diagram,
+        'code': {'lang': chosen[2], 'text': chosen[3], 'source': source[1] if source else ''},
+        'notes': render(sections['speaker']), 'analysis': render(sections['analysis']),
+        'layout': render(layout_text),
+    }
+
+
+def parse(text):
+    matches = list(FRAME.finditer(text))
+    if not matches:
+        raise ValueError('no frames found')
+    frames = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[match.end():end]
+        if index + 1 == len(matches):
+            tail = re.search(r'^## (?!Frame )', body, re.MULTILINE)
+            body, appendix = (body[:tail.start()], body[tail.start():]) if tail else (body, '')
+        elif re.search(r'^## (?!Frame )', body, re.MULTILINE):
+            raise ValueError(f'frame {match[1]}: unexpected section between frames')
+        frames.append(parse_frame(match[1], match[3], match[2], match[4], body))
+    keys = [frame['key'] for frame in frames]
+    if len(set(keys)) != len(keys):
+        raise ValueError('duplicate frame keys')
+    return text[:matches[0].start()], frames, appendix
+
+
+def reader_article(frame):
+    key, sections = frame['key'], frame['sections']
+    points = ''.join(f'<li>{escape(point)}</li>' for point in frame['points'])
+    onscreen = (f'<div class="onscreen"><p class="onscreen-label">화면 핵심 · {escape(frame["kicker"])}</p>'
+                f'<p class="onscreen-message">{escape(frame["message"])}</p><ol>{points}</ol></div>')
+    figure = (f'<figure><a href="{frame["diagram"]["src"]}" target="_blank" rel="noopener" '
+              f'aria-label="프레임 {key} 도식 크게 보기"><img src="{frame["diagram"]["src"]}" '
+              f'width="{frame["diagram"]["w"]}" height="{frame["diagram"]["h"]}" '
+              f'alt="{escape(frame["title"], quote=True)} 아키텍처 도식" loading="lazy"></a>'
+              '<figcaption>도식을 선택하면 크게 볼 수 있습니다.</figcaption></figure>\n'
+              '<details class="diagram-source"><summary>Mermaid 원본 보기</summary><pre><code>'
+              + escape(frame['mermaid']) + '</code></pre></details>\n')
+    layout = re.sub(r'```mermaid\n[\s\S]*?\n```', lambda _: figure, sections['layout'], count=1)
+    return (f'<article class="frame cluster-{frame["cluster"]}" id="frame-{key}" data-frame="{key}">'
+            f'<div class="frame-meta"><span>FRAME {key}</span><span>{escape(frame["level_label"])} · '
+            f'{frame["minutes"]}분 · <a href="index.html#/onboarding/{key}">캔버스에서 보기 ↗</a></span></div>'
+            f'<h2>{escape(frame["title"])}</h2>{onscreen}<h3>화면 시각화 가이드</h3>{render(layout)}'
+            f'<h3>핵심 엔지니어링 분석</h3>{frame["analysis"]}<h3>실전 코드</h3>{render(sections["code"])}'
+            f'<details class="speaker"><summary>발표자 노트 펼치기</summary>'
+            f'<div>{frame["notes"]}</div></details></article>')
+
+
 def main():
     source = SOURCE.read_text(encoding='utf-8')
-    parts = re.split(r'^## (Frame \d-\d[^\n]*)\n', source, flags=re.MULTILINE)
-    if len(parts) != 29:
-        raise ValueError('the presentation must contain all 14 frames')
-    sections, navigation = [], []
-    for index in range(1, len(parts), 2):
-        heading, body = parts[index:index + 2]
-        key, level, title = re.fullmatch(r'Frame (\d-\d) \| (Level [123][^|]*) \| (.+)', heading).groups()
-        cluster = int(key[0])
-        navigation.append(f'<a href="#frame-{key}" data-frame="{key}"><span>{key}</span>{escape(title)}</a>')
-        # The appendix after the final frame is kept outside the speaker notes.
-        tail = ''
-        if key == '0-2':
-            body, tail = re.split(r'(?=^## 면접 후속)', body, maxsplit=1, flags=re.MULTILINE)
-        diagram = re.search(r'```mermaid\n([\s\S]*?)\n```', body)
-        image = ROOT / f'assets/diagrams/frame-{key}.png'
-        if diagram is None or not image.is_file():
-            raise ValueError(f'missing diagram for frame {key}')
-        figure = (f'<figure><a href="assets/diagrams/frame-{key}.png" target="_blank" rel="noopener" '
-                  f'aria-label="프레임 {key} 도식 크게 보기"><img src="assets/diagrams/frame-{key}.png" '
-                  f'alt="{escape(title, quote=True)} 아키텍처 도식" loading="lazy"></a>'
-                  '<figcaption>도식을 선택하면 크게 볼 수 있습니다.</figcaption></figure>\n'
-                  '<details class="diagram-source"><summary>Mermaid 원본 보기</summary><pre><code>'
-                  + escape(diagram[1]) + '</code></pre></details>\n')
-        body = body[:diagram.start()] + figure + body[diagram.end():]
-        speaker_marker = '**[발표자 노트 (Speaker Script)]**'
-        if speaker_marker not in body:
-            raise ValueError(f'missing speaker notes for frame {key}')
-        body, speaker = body.split(speaker_marker, 1)
-        body = re.sub(r'^\*\*\[([^\n(]+) \([^\n]*\)\]\*\*$', r'### \1', body, flags=re.MULTILINE)
-        sections.append(
-            f'<article class="frame cluster-{cluster}" id="frame-{key}" data-frame="{key}">'
-            f'<div class="frame-meta"><span>FRAME {key}</span><span>{escape(level.strip())}</span></div>'
-            f'<h2>{escape(title)}</h2>{render(body)}'
-            '<details class="speaker"><summary>발표자 노트 펼치기</summary>'
-            f'<div>{render(speaker)}</div></details></article>')
-        if tail:
-            sections.append('<section class="appendix" id="appendix"><div class="section-label">REFERENCE</div>'
-                            + render(tail) + '</section>')
-    intro = parts[0].split('\n', 1)[1]
-    template = (ROOT / 'web/template.html').read_text(encoding='utf-8')
+    intro, frames, appendix = parse(source)
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    substitutions = {'{{NAVIGATION}}': '\n'.join(navigation), '{{CONTENT}}': '\n'.join(sections),
-                     '{{BACKGROUND}}': render(intro), '{{REVISION}}': revision[:7]}
-    for token, content in substitutions.items():
-        template = template.replace(token, content)
-    if re.search(r'\{\{[A-Z_]+\}\}', template):
-        raise ValueError('unexpanded page template')
+    main_minutes = sum(frame['minutes'] for frame in frames if frame['cluster'] != 5)
+    playbook_minutes = sum(frame['minutes'] for frame in frames if frame['cluster'] == 5)
+    values = {'{{REVISION}}': revision[:7], '{{FRAME_COUNT}}': str(len(frames)),
+              '{{MAIN_MINUTES}}': str(main_minutes), '{{PLAYBOOK_MINUTES}}': str(playbook_minutes)}
+
+    navigation = '\n'.join(f'<a href="#frame-{f["key"]}" data-frame="{f["key"]}"><span>{f["key"]}</span>'
+                           f'{escape(f["title"])}</a>' for f in frames)
+    articles = '\n'.join(reader_article(frame) for frame in frames)
+    if appendix:
+        articles += ('<section class="appendix" id="appendix"><div class="section-label">REFERENCE</div>'
+                     + render(appendix) + '</section>')
+    reader_values = {**values, '{{NAVIGATION}}': navigation, '{{CONTENT}}': articles,
+                     '{{BACKGROUND}}': render(intro.split('\n', 1)[1])}
+    canvas, data = deck.render(frames, render(appendix), revision[:7])
+    deck_values = {**values, '{{CANVAS}}': canvas, '{{DECK_DATA}}': data}
+
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    (OUTPUT / 'index.html').write_text(template, encoding='utf-8')
-    for name in ('style.css', 'app.js', 'favicon.svg'):
+    for template, output, substitutions in (('reader.html', 'reader.html', reader_values),
+                                            ('deck.html', 'index.html', deck_values)):
+        page = (ROOT / 'web' / template).read_text(encoding='utf-8')
+        for token, content in substitutions.items():
+            page = page.replace(token, content)
+        if re.search(r'\{\{[A-Z_]+\}\}', page):
+            raise ValueError(f'unexpanded placeholder in {template}')
+        (OUTPUT / output).write_text(page, encoding='utf-8')
+    for name in ('style.css', 'app.js', 'deck.css', 'deck.js', 'favicon.svg'):
         shutil.copy2(ROOT / 'web' / name, OUTPUT / name)
+    shutil.copytree(ROOT / 'web/fonts', OUTPUT / 'fonts', dirs_exist_ok=True)
     shutil.copytree(ROOT / 'assets/diagrams', OUTPUT / 'assets/diagrams', dirs_exist_ok=True)
     downloads = OUTPUT / 'downloads'
     downloads.mkdir(exist_ok=True)
@@ -77,7 +165,7 @@ def main():
     shutil.copy2(ROOT / 'deliverables/fde-prezi-kit.zip', downloads / 'fde-prezi-kit.zip')
     (OUTPUT / '.nojekyll').touch()
     (OUTPUT / 'revision.txt').write_text(revision + '\n', encoding='utf-8')
-    print(f'Built {OUTPUT}: 14 frames, 14 diagrams, revision {revision[:7]}')
+    print(f'Built {OUTPUT}: {len(frames)} frames, deck and reader, revision {revision[:7]}')
 
 
 if __name__ == '__main__':

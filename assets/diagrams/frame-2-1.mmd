@@ -1,10 +1,18 @@
-flowchart LR
-  U["검증된 사용자와 tenant"] --> A["DB 권한과 문서 ACL"]
-  A --> B["Lexical / BM25"]
-  A --> V["Dense / cosine"]
-  B --> F["RRF 후보 결합"]
-  V --> F
-  F --> R["허용 후보만 rerank"]
-  R --> C["버전과 원문 위치가 있는 context"]
-  C --> L["로컬 LLM"]
-  L --> G["출력 검증과 권한 재확인"]
+flowchart TB
+  subgraph R1["1 권한 안에서 후보 만들기"]
+    direction LR
+    U["검증된<br/>사용자와 tenant"] --> A["DB 권한과<br/>문서 ACL"]
+    A --> B["Lexical / BM25"]
+    A --> V["Dense / cosine"]
+    B --> F["RRF 후보 결합"]
+    V --> F
+  end
+  subgraph R2["2 허용 후보로만 답하기"]
+    direction LR
+    R["허용 후보만<br/>rerank"] --> C["버전과 원문 위치가<br/>있는 context"]
+    C --> L["로컬 LLM"]
+    L --> G["출력 검증과<br/>권한 재확인"]
+  end
+  R1 --> R2
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

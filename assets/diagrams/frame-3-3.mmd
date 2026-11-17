@@ -1,8 +1,8 @@
-flowchart LR
+flowchart TB
   RAW["접근 제한 원본"] --> MIN["필드 최소화와 PII 처리"]
   MIN --> IDX["권한이 있는 검색 projection"]
   REQ["인증된 요청"] --> DEC["정책 결정과 검증 결과"]
-  DEC --> OUT["감사 outbox에 내구성 있게 기록"]
+  DEC --> OUT["감사 outbox에<br/>내구성 있게 기록"]
   OUT --> W["별도 계정의 감사 보관소"]
   W --> ROOT["보관 정책과 변조 검증"]
-  CTRL["Kubernetes API 변경"] --> KA["Metadata 수준 control-plane audit"]
+  CTRL["Kubernetes API 변경"] --> KA["Metadata 수준<br/>control-plane audit"]

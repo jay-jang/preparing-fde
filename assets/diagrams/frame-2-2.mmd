@@ -1,12 +1,12 @@
 sequenceDiagram
-  participant U as Client
-  participant G as Trusted gateway
+  participant U as 클라이언트
+  participant G as 신뢰된 gateway
   participant D as PostgreSQL RLS
   participant R as Ranker
-  U->>G: Access token and query
-  G->>G: Verify signature issuer audience expiry
-  G->>D: BEGIN and transaction-local identity
-  D->>D: Tenant and membership role policy
-  D-->>G: Authorized chunks only
-  G->>D: COMMIT clears local identity
-  G->>R: Authorized candidates
+  U->>G: 접근 토큰과 질문
+  Note over G: 서명 · issuer · audience · 만료 검증
+  G->>D: BEGIN · 트랜잭션 로컬 identity
+  Note over D: tenant · membership role 정책
+  D-->>G: 허용된 청크만
+  G->>D: COMMIT · 로컬 identity 해제
+  G->>R: 허용된 후보

@@ -34,8 +34,46 @@ test_rls_applies_before_python_ranking (test_database.DatabaseTests.test_rls_app
 test_stale_update_cannot_resurrect_tombstone (test_database.DatabaseTests.test_stale_update_cannot_resurrect_tombstone) ... ok
 test_transaction_rolls_back_if_audit_outbox_fails (test_database.DatabaseTests.test_transaction_rolls_back_if_audit_outbox_fails) ... ok
 test_unmapped_identity_is_not_silently_created (test_database.DatabaseTests.test_unmapped_identity_is_not_silently_created) ... ok
+test_byte_totals_remain_integers_and_plan_is_frozen (test_field_kit.CapacityTests.test_byte_totals_remain_integers_and_plan_is_frozen) ... ok
+test_exact_fit_and_no_remaining_sequence (test_field_kit.CapacityTests.test_exact_fit_and_no_remaining_sequence) ... ok
+test_fifty_simultaneous_requests_exceed_memory (test_field_kit.CapacityTests.test_fifty_simultaneous_requests_exceed_memory) ... ok
+test_fitting_gpu_plan_exact_byte_accounting (test_field_kit.CapacityTests.test_fitting_gpu_plan_exact_byte_accounting) ... ok
+test_hypothetical_gqa_kv_storage (test_field_kit.CapacityTests.test_hypothetical_gqa_kv_storage) ... ok
+test_integer_inputs_fail_closed_in_every_position (test_field_kit.CapacityTests.test_integer_inputs_fail_closed_in_every_position) ... ok
+test_nonfinite_and_underflowed_estimates_fail_closed (test_field_kit.CapacityTests.test_nonfinite_and_underflowed_estimates_fail_closed) ... ok
+test_overhead_must_be_stated (test_field_kit.CapacityTests.test_overhead_must_be_stated) ... ok
+test_rates_and_utilization_reject_invalid_numbers (test_field_kit.CapacityTests.test_rates_and_utilization_reject_invalid_numbers) ... ok
+test_raw_vector_storage (test_field_kit.CapacityTests.test_raw_vector_storage) ... ok
+test_remaining_memory_below_one_sequence (test_field_kit.CapacityTests.test_remaining_memory_below_one_sequence) ... ok
+test_users_are_not_concurrent_requests (test_field_kit.CapacityTests.test_users_are_not_concurrent_requests) ... ok
+test_abstention_is_an_outcome (test_field_kit.ProvenanceTests.test_abstention_is_an_outcome) ... ok
+test_comparison_requires_records_on_both_sides (test_field_kit.ProvenanceTests.test_comparison_requires_records_on_both_sides) ... ok
+test_cross_tenant_refusal_precedes_request_and_principal_checks (test_field_kit.ProvenanceTests.test_cross_tenant_refusal_precedes_request_and_principal_checks) ... ok
+test_every_field_maps_to_its_boundary (test_field_kit.ProvenanceTests.test_every_field_maps_to_its_boundary) ... ok
+test_evidence_is_unique_versioned_and_bounded (test_field_kit.ProvenanceTests.test_evidence_is_unique_versioned_and_bounded) ... ok
+test_identical_record_has_no_changed_inputs (test_field_kit.ProvenanceTests.test_identical_record_has_no_changed_inputs) ... ok
+test_identifiers_cannot_contain_whitespace_or_free_text (test_field_kit.ProvenanceTests.test_identifiers_cannot_contain_whitespace_or_free_text) ... ok
+test_key_id_matches_privacy_format (test_field_kit.ProvenanceTests.test_key_id_matches_privacy_format) ... ok
+test_multiple_boundaries_follow_pipeline_order (test_field_kit.ProvenanceTests.test_multiple_boundaries_follow_pipeline_order) ... ok
+test_only_real_abstention_allows_empty_evidence (test_field_kit.ProvenanceTests.test_only_real_abstention_allows_empty_evidence) ... ok
+test_pair_containers_identifiers_and_integers_are_strict (test_field_kit.ProvenanceTests.test_pair_containers_identifiers_and_integers_are_strict) ... ok
+test_privacy_hmac_pseudonym_is_accepted (test_field_kit.ProvenanceTests.test_privacy_hmac_pseudonym_is_accepted) ... ok
+test_prompt_evidence_order_is_significant (test_field_kit.ProvenanceTests.test_prompt_evidence_order_is_significant) ... ok
+test_record_is_immutable (test_field_kit.ProvenanceTests.test_record_is_immutable) ... ok
+test_replay_requires_same_request_and_principal (test_field_kit.ProvenanceTests.test_replay_requires_same_request_and_principal) ... ok
+test_request_id_must_be_canonical_lowercase_uuid (test_field_kit.ProvenanceTests.test_request_id_must_be_canonical_lowercase_uuid) ... ok
+test_sources_must_be_nonempty_unique_and_sorted (test_field_kit.ProvenanceTests.test_sources_must_be_nonempty_unique_and_sorted) ... ok
+test_subclass_that_skips_validation_is_refused (test_field_kit.ProvenanceTests.test_subclass_that_skips_validation_is_refused) ... ok
+test_subject_and_model_digest_are_strict (test_field_kit.ProvenanceTests.test_subject_and_model_digest_are_strict) ... ok
+test_every_camera_target_exists_once (test_pages.PresentationTests.test_every_camera_target_exists_once) ... ok
+test_frames_follow_the_story (test_pages.PresentationTests.test_frames_follow_the_story) ... ok
+test_interview_path_matches_handout (test_pages.PresentationTests.test_interview_path_matches_handout) ... ok
+test_on_screen_copy_stays_short (test_pages.PresentationTests.test_on_screen_copy_stays_short) ... ok
+test_onboarding_covers_every_frame_with_overview_returns (test_pages.PresentationTests.test_onboarding_covers_every_frame_with_overview_returns) ... ok
+test_paths_use_known_steps (test_pages.PresentationTests.test_paths_use_known_steps) ... ok
+test_payload_cannot_close_its_script_element (test_pages.PresentationTests.test_payload_cannot_close_its_script_element) ... ok
 
 ----------------------------------------------------------------------
-Ran 36 tests in 1.523s
+Ran 74 tests in 1.376s
 
 OK

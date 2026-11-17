@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TB
   E["허용 근거와 버전"] --> L["LLM JSON 출력"]
   L --> S["엄격한 출력 schema"]
   S --> C["인용 ID와 버전과 원문 대조"]
@@ -7,3 +7,6 @@ flowchart LR
   L --> T["도구 이름과 인자 검증"]
   T --> R["read-only search와 호출 deadline"]
   T -. "write tool 거부" .-> D["별도 승인된 업무 action 경로"]
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class D fail
+  linkStyle 7 stroke:#b4483c

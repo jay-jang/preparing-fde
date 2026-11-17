@@ -1,8 +1,13 @@
-flowchart LR
-  D["업무 과제와 권한 합의"] --> V["단일 공장 수직 MVP"]
-  V --> E["고정된 holdout과 실패 시험"]
-  E --> S["shadow와 현장 검토"]
-  S --> C["제한된 사용자 공개"]
-  C --> P["운영 게이트와 담당자 인수"]
-  P --> F["사용 결과와 장애 피드백"]
-  F --> D
+flowchart TB
+  subgraph W1["1주차 · 범위 · 데이터 · 권한 · 검색"]
+    direction LR
+    D1["D1<br/>과제 · owner<br/>접근 경로"] --> D2["D2<br/>표본 ·<br/>identity 매핑"] --> D3["D3<br/>멱등 수집 ·<br/>삭제 처리"] --> D4["D4<br/>IdP ·<br/>serving ACL"] --> D5["D5<br/>hybrid 비교 ·<br/>holdout"]
+  end
+  subgraph W2["2주차 · 응답 · 배포 · 운영 · 공개"]
+    direction LR
+    D6["D6<br/>인용 응답 ·<br/>read-only 도구"] --> D7["D7<br/>반입 묶음 ·<br/>내부 배포"] --> D8["D8<br/>관측 · 감사 ·<br/>복구 runbook"] --> D9["D9<br/>shadow ·<br/>현장 리뷰"] --> D10["D10<br/>제한 공개 ·<br/>운영 인계"]
+  end
+  N["다음 반복<br/>사용 결과와 장애 피드백으로 D1 범위 재합의"]
+  W1 --> W2 --> N
+  style W1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style W2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

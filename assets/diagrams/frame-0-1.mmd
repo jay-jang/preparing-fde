@@ -1,14 +1,24 @@
 flowchart LR
-  S["ERP / 정비 API / PDF"] --> I["1 수집과 계약 검증"]
-  I --> O["온톨로지와 변경 이력"]
-  O --> X["청크와 검색 인덱스"]
-  U["정비 엔지니어 질문"] --> P["인증과 권한 판정"]
-  P --> R["2 허용 문서 하이브리드 검색"]
+  %% Invisible links (~~~) fold the feedback loop into a ring: data path on top, answer path back along the bottom.
+  %% Keep M first and the ~~~ lines in this order; they decide which edges dagre draws right-to-left.
+  M["4 평가와<br/>운영 피드백"] ~~~ A["인용과 보류 사유가<br/>있는 응답"]
+  A ~~~ G["근거 검증과<br/>로컬 추론"]
+  G ~~~ R["2 허용 문서<br/>하이브리드 검색"]
+  subgraph Q[" "]
+    U["정비 엔지니어<br/>질문"] --> P["인증과<br/>권한 판정"]
+  end
+  S["ERP / 정비 API /<br/>PDF"] --> I["1 수집과<br/>계약 검증"]
+  I --> O["온톨로지와<br/>변경 이력"]
+  O --> X["청크와<br/>검색 인덱스"]
+  I ~~~ D["3 내부 공급망과<br/>실행 환경"]
   X --> R
-  R --> G["근거 검증과 로컬 추론"]
-  G --> A["인용과 보류 사유가 있는 응답"]
-  D["3 내부 공급망과 실행 환경"] -.-> I
+  P --> R
+  D -.-> I
   D -.-> G
-  A --> M["4 평가와 운영 피드백"]
+  R --> G
+  G --> A
+  A --> M
   M --> I
   M --> G
+  M ~~~ D
+  style Q fill:none,stroke:none

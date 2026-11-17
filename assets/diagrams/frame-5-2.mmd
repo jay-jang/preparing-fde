@@ -1,0 +1,21 @@
+flowchart TB
+  subgraph Record["1 기록 찾기와 복원"]
+    direction LR
+    R["오답 신고와 request ID"] --> O["답변 시점의 최소 기록"] --> S["별도 snapshot · PITR 복원"]
+  end
+  subgraph Replay["2 조건 고정과 replay"]
+    direction LR
+    P["정책 · 검색 · 생성 artifact 고정"] --> E["ticket의 같은 질문 ·<br/>검증된 주체로 replay"] --> C["신고 기록과 replay 기록 localize 비교"]
+  end
+  subgraph Triage["3 경계별 조사"]
+    direction LR
+    B["data → policy → retrieval → generation"] --> H["최초 차이부터 조사 · 사람 검토"]
+    B -. "입력 동일 · 답변 상이" .-> M["누락 필드 기록 보완"]
+  end
+  Record --> Replay --> Triage
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class M fail
+  linkStyle 5 stroke:#b4483c
+  style Record fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Replay fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style Triage fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px

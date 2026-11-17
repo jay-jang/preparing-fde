@@ -1,0 +1,13 @@
+flowchart TB
+  A["가정: 동시 사용자 50명 ·<br/>인당 분당 1회"] --> L["W에 p95 목표 5초 대입<br/>λW ≈ 4.17건"]
+  M["가정: 8B GQA · 8,192 tokens"] --> K["KV: sequence당 1GiB"]
+  G["가정: GPU 48GiB ·<br/>이용률 0.9"] --> P["가중치 · overhead · KV 합산"]
+  L --> P
+  K --> P
+  P --> T["피크 · 버스트 부하 시험"]
+  T --> U["p95 · 큐 · 메모리로 가정 교체"]
+  P -. "메모리 초과" .-> C["context · 출력 · 동시성 상한 조정"]
+  C --> P
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class C fail
+  linkStyle 7 stroke:#b4483c

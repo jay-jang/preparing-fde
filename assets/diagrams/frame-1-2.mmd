@@ -1,9 +1,20 @@
-flowchart LR
-  K["CDC 이벤트"] --> V["계약과 identity 검증"]
-  V --> T["DB 트랜잭션 시작"]
-  T --> D["event ID와 payload hash 확인"]
-  D --> U["더 큰 소스 위치만 상태 갱신"]
-  U --> A["감사 outbox 삽입"]
-  A --> C["COMMIT"]
-  C --> O["consumer offset ACK"]
-  V -. "계약 오류" .-> Q["내구성 있는 격리 저장 후 정책에 따라 처리"]
+flowchart TB
+  subgraph R1["1 수신과 검증"]
+    direction LR
+    K["CDC 이벤트"] --> V["계약과<br/>identity 검증"]
+    V -. "계약 오류" .-> Q["내구성 있는<br/>격리 저장 후<br/>정책에 따라 처리"]
+    V --> T["DB 트랜잭션<br/>시작"]
+    T --> D["event ID와<br/>payload hash 확인"]
+  end
+  subgraph R2["2 상태 갱신 · 감사 · COMMIT 뒤 ACK"]
+    direction LR
+    U["더 큰 소스 위치만<br/>상태 갱신"] --> A["감사 outbox<br/>삽입"]
+    A --> C["COMMIT"]
+    C --> O["consumer<br/>offset ACK"]
+  end
+  R1 --> R2
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class Q fail
+  style R1 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  style R2 fill:#f7f7f2,stroke:#dedfd5,stroke-width:1px
+  linkStyle 1 stroke:#b4483c

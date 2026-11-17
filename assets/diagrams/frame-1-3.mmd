@@ -1,9 +1,12 @@
 flowchart LR
-  V1["소스 계약 v1"] --> N["명시적 정규화 어댑터"]
+  V1["소스 계약 v1"] --> N["명시적<br/>정규화 어댑터"]
   V2["소스 계약 v2"] --> N
   N --> C["canonical 계약"]
-  C --> P["활성 projection 버전"]
-  U["알 수 없는 버전"] -.-> Q["격리와 계약 검토"]
-  D["삭제 이벤트"] --> T["버전이 있는 tombstone"]
-  T --> R["검색 제외와 캐시 무효화"]
-  B["오래된 backfill"] -. "소스 위치가 낮아 거절" .-> T
+  C --> P["활성 projection<br/>버전"]
+  U["알 수 없는 버전"] -. "거부" .-> Q["격리와 계약 검토"]
+  D["삭제 이벤트"] --> T["버전이 있는<br/>tombstone"]
+  T --> R["검색 제외와<br/>캐시 무효화"]
+  B["오래된 backfill"] -. "소스 위치가 낮아<br/>거절" .-> T
+  classDef fail fill:#fbeceb,stroke:#b4483c,color:#7a2a22
+  class Q fail
+  linkStyle 4,7 stroke:#b4483c

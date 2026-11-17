@@ -1,9 +1,14 @@
-flowchart LR
+flowchart BT
+  %% Bottom-up: customer outcome on top. Invisible links (~~~) pin the feedback node beside the chain
+  %% and the supply-chain node on the other side; their order decides the layout.
   S["원천 데이터와 고객 업무"] --> I["재전송에도 보존되는 상태"]
+  I ~~~ E["업무 평가와 장애 피드백"]
+  E --> S
+  G["출처를 검증한 응답"] --> U["더 빠른 근거 탐색과 판단 지원"]
   I --> R["사용자가 볼 수 있는 근거"]
-  R --> G["출처를 검증한 응답"]
-  G --> U["더 빠른 근거 탐색과 판단 지원"]
   D["검증된 실행물과 내부 운영"] --> I
   D --> G
-  U --> E["업무 평가와 장애 피드백"]
-  E --> S
+  R --> G
+  E ~~~ G
+  U --> E
+  I ~~~ D

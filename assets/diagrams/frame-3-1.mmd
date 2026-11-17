@@ -1,14 +1,15 @@
-flowchart LR
+flowchart TB
   subgraph Build["연결 구역"]
+    direction LR
     C["소스와 고정된 의존성"] --> B["빌드와 검사"]
-    B --> S["서명된 release manifest와 SBOM"]
+    B --> S["서명된 release<br/>manifest와 SBOM"]
   end
-  S --> T["승인된 반입과 검증"]
   subgraph Offline["고객 폐쇄망"]
-    T --> R["내부 OCI registry와 package mirror"]
+    T["승인된 반입과 검증"] --> R["내부 OCI registry와<br/>package mirror"]
     T --> M["모델과 tokenizer 저장소"]
     R --> K["Kubernetes 실행 환경"]
     M --> K
     I["내부 IdP / PKI / DNS / NTP"] --> K
-    K --> O["내부 로그와 메트릭과 감사 보관"]
+    K --> O["내부 로그와 메트릭과<br/>감사 보관"]
   end
+  Build --> T

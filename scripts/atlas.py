@@ -154,15 +154,20 @@ def columns(line):
     return sum(1.0 if unicodedata.east_asian_width(c) in 'WF' else .6 for c in line)
 
 
+def long_code(code):
+    return len(code.split('\n')) >= 20
+
+
 def code_leading(code):
-    return 1.22 if len(code.split('\n')) >= 20 else 1.42
+    return 1.15 if long_code(code) else 1.42
 
 
 def code_font(code, width, height):
     """Largest font (world px) at which every line fits the code portal without wrapping."""
     lines = code.split('\n')
     widest = max(columns(line) for line in lines) or 1
-    return round(max(8.0, min(17.0, width / widest * .97, height / (len(lines) * code_leading(code)))), 2)
+    cap = 19.0 if long_code(code) else 17.0
+    return round(max(8.0, min(cap, width / widest * .97, height / (len(lines) * code_leading(code)))), 2)
 
 
 def text_width(text, font):
@@ -237,7 +242,8 @@ def portal(frame, kind, centre):
     node = f'{key}.{kind}'
     caption = f'<figcaption>{PORTAL_NAMES[kind]}</figcaption>'
     tag = f'<span class="portal-tag">{key} {escape(frame["label"])} · {PORTAL_NAMES[kind]}</span>'
-    attrs = (f'class="portal portal-{kind}" id="n-{key}-{kind}" data-node="{node}" '
+    long = ' long' if kind == 'code' and long_code(frame['code']['text']) else ''
+    attrs = (f'class="portal portal-{kind}{long}" id="n-{key}-{kind}" data-node="{node}" '
              f'style="{box_style(centre[0], centre[1], PORTAL_W, PORTAL_H)}" '
              f'aria-label="{key} {PORTAL_NAMES[kind]}"')
     if kind == 'diagram':
@@ -245,7 +251,10 @@ def portal(frame, kind, centre):
         body = f'{tag}<div class="diagram-box" style="width:{w:g}px;height:{h:g}px">{svg_markup(frame)}</div>'
     elif kind == 'code':
         code = frame['code']
-        font = code_font(code['text'], PORTAL_W - 2 * PORTAL_PAD, PORTAL_H - 2 * PORTAL_PAD - 26)
+        # Long blocks use a slimmer frame (14px/16px padding) so 24 lines stay legible on a 720p projector.
+        pad_x, pad_y = (16, 14) if long_code(code['text']) else (PORTAL_PAD, PORTAL_PAD)
+        # 26px in-panel title, 8px of portal border and 4px for taller fallback (Hangul) line boxes.
+        font = code_font(code['text'], PORTAL_W - 2 * pad_x, PORTAL_H - 2 * pad_y - 26 - 8 - 4)
         source = f'<span class="code-file">{escape(code["source"])}</span>' if code['source'] else ''
         body = (f'<div class="code-head"><span class="code-lang">{key} {escape(frame["label"])} · 코드 · '
                 f'{escape(code["lang"])}</span>{source}</div>'

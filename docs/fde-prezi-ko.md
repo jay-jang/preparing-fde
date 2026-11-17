@@ -528,34 +528,37 @@ flowchart TB
 
 `fde/contracts.py`의 `validate_batch`는 한 partition의 `(소스 위치, 레코드)` 쌍을 받는다. 아래 계약과 레코드는 실행 확인용 fixture이며 고객 스키마가 아니다. 30초·5초와 −40~150°C 범위는 제안값이다.
 
+<!-- deck -->
 ```python
 from datetime import datetime, timezone
-from fde.contracts import Contract, Field, SchemaBreak, validate_batch
-
-work_orders = Contract(
-    source="cmms.work-orders", revision=1, schema_versions=(1,), owner="정비 시스템 owner",
-    fields=(Field("work_order_id", "id", pattern=r"WO-\d{6}"),
-            Field("asset_key", "id", pattern=r"[A-Z]{1,3}-\d{1,4}"),
-            Field("status", "enum", choices=("open", "closed")),
-            Field("bearing_temp", "quantity", unit="C", minimum=-40, maximum=150),
-            Field("event_time", "timestamp")),
-    max_lag_seconds=30, max_skew_seconds=5)
-ok = {"schema_version": 1, "work_order_id": "WO-000123", "asset_key": "P-101", "status": "closed",
-      "bearing_temp": {"value": 92.5, "unit": "C"}, "event_time": "2026-11-16T09:00:00+09:00"}
+from fde.contracts import Contract, Field as F, SchemaBreak, validate_batch
+orders = Contract(
+    source="cmms.work-orders", revision=1, schema_versions=(1,),
+    owner="정비 시스템 owner", max_lag_seconds=30, max_skew_seconds=5,
+    fields=(F("asset_key", "id", pattern=r"[A-Z]{1,3}-\d{1,4}"),
+            F("status", "enum", choices=("open", "closed")),
+            F("bearing_temp", "quantity", unit="C", minimum=-40, maximum=150),
+            F("event_time", "timestamp")))
+ok = {"schema_version": 1, "asset_key": "P-101", "status": "closed",
+      "bearing_temp": {"value": 92.5, "unit": "C"},
+      "event_time": "2026-11-16T09:00:00+09:00"}
 bad = dict(ok, asset_key="P101", bearing_temp={"value": 198.5, "unit": "F"})
 late = dict(ok, event_time="2026-11-16T08:58:00+09:00")
 now = datetime(2026, 11, 16, 0, 0, 12, tzinfo=timezone.utc)
-result = validate_batch(work_orders, [(10, ok), (11, bad), (12, late)], ingest_time=now)
-print(result.counts, result.quarantined[0].reasons, sep="\n")
-# {'accepted': 2, 'quarantined': 1, 'bad_id_format': 1, 'unit_mismatch': 1, 'late_event': 1}
-# ('bad_id_format:asset_key', 'unit_mismatch:bearing_temp')
+out = validate_batch(orders, [(10, ok), (11, bad), (12, late)], ingest_time=now)
+print(out.counts)
+# {'accepted': 2, 'quarantined': 1, 'bad_id_format': 1,
+#  'unit_mismatch': 1, 'late_event': 1}
 try:
-    validate_batch(work_orders, [(13, dict(ok, schema_version=2))], ingest_time=now)
+    validate_batch(orders, [(13, dict(ok, schema_version=2))], ingest_time=now)
 except SchemaBreak as error:
-    print(error)  # position 13: unknown schema_version 2; revise the contract before ACK
+    print(error)  # position 13: unknown schema_version 2;
+                  # revise the contract before ACK
 ```
 
-`replay(revised, quarantined)`는 같은 소스이면서 revision이 더 높은 계약에서만 실행되고 각 격리 기록의 원래 수집 시각으로 다시 판정한다. 테스트는 위 배치와 별도로 status가 `deferred`여서 격리된 기록(position 7)이 enum에 `deferred`를 더한 revision 2에서 수용되고 지연 12.0초가 유지되는지 확인한다. 위 배치의 `result.quarantined`(offset 11)를 같은 revision 2로 replay하면 `{'accepted': 0, 'quarantined': 1, 'bad_id_format': 1, 'unit_mismatch': 1}`로 격리에 남는다. 형식·단위 위반은 계약 개정이 아니라 원천에서 고친 새 이벤트로 해소된다. 실제 격리 저장소의 내구성과 접근 통제는 이 모듈 밖의 책임이다.
+격리된 offset 11은 `bad_id_format:asset_key`와 `unit_mismatch:bearing_temp` 두 사유를 함께 기록하고(`out.quarantined[0].reasons`), 늦게 온 offset 12는 `late_event` 경고와 함께 수용된다. 주석의 출력은 화면 폭에 맞춰 두 줄로 나눴다.
+
+`replay(revised, quarantined)`는 같은 소스이면서 revision이 더 높은 계약에서만 실행되고 각 격리 기록의 원래 수집 시각으로 다시 판정한다. 테스트는 위 배치와 별도로 status가 `deferred`여서 격리된 기록(position 7)이 enum에 `deferred`를 더한 revision 2에서 수용되고 지연 12.0초가 유지되는지 확인한다. 위 배치의 `out.quarantined`(offset 11)를 같은 revision 2로 replay하면 `{'accepted': 0, 'quarantined': 1, 'bad_id_format': 1, 'unit_mismatch': 1}`로 격리에 남는다. 형식·단위 위반은 계약 개정이 아니라 원천에서 고친 새 이벤트로 해소된다. 실제 격리 저장소의 내구성과 접근 통제는 이 모듈 밖의 책임이다.
 
 **[발표자 노트 (Speaker Script)]**
 
@@ -1919,7 +1922,7 @@ flowchart BT
 
 | 항목 | 값 | 근거 |
 | --- | --- | --- |
-| 기록된 통합 검사(2026-11-17 실행) | 306 tests · 4.941 s | 코드: scripts/check.py --all · docs/test-output.txt |
+| 기록된 통합 검사(2026-11-17 실행) | 306 tests · 4.986 s | 코드: scripts/check.py --all · docs/test-output.txt |
 | ACL 누출 허용 | 0건 | 코드: fde/release_gate.py |
 | 유형별 응답 p95 상한 | 5,000 ms | 제안값 · fde/release_gate.py에 고정 (고객 합의 후 조정) |
 | 유형별 최소 평가 예제 | 30개 | 제안값 · fde/release_gate.py에 고정 (고객 합의 후 조정) |
@@ -1940,7 +1943,7 @@ test_citation_bound_to_retrieved_version ... ok           # 2 인용
 test_tampered_manifest_fails_signature ... ok             # 3 반입
 test_quality_gate_baseline_and_leak_in_any_slice ... ok   # 4 게이트
 ----------------------------------------------------------------------
-Ran 306 tests in 4.941s
+Ran 306 tests in 4.986s
 
 OK
 ```

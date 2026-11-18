@@ -39,10 +39,18 @@
   let pathName = hasPath(storage.get('fde-path')) ? storage.get('fde-path') : 'interview';
   let index = 0;
   let cam = null;
-  let flight = 0;
-  let pending = null;
+  let flight = null;         // the camera's current flight, if any (see fly)
+  let wheelTo = null;        // the scale a wheel or pinch gesture is easing to, around a screen point
+  let frameRequest = 0;
+  let lastTick = 0;
+  let closing = 0;           // 0-1: how far the closing step's message has replaced the title
+  let titleAway = 0;         // 0-1: how far the hub title has left ahead of the message (kept across interruptions)
+  let lastHeld = null;       // the subject as last drawn (reveal), where the next flight's hand-over starts
+  let letGo = null;          // a flight stopped by free input: its subject eases back to the camera's (reveal)
+  let stopDir = 0;           // zoom direction of the flight free input stopped (1 in, −1 out)
+  let pin = null;            // at rest after free input: topics eased fully open or shut (reveal)
   let detour = false;
-  let focusId = 'overview';  // the level currently revealed
+  let focusId = 'overview';  // the node the focus classes (links, depth, sheet) describe
   let aim = 'overview';      // where the camera is going (equals focusId at rest)
   let notesOpen = presenter || storage.get('fde-notes') === 'open';
   let tab = 'speaker';
@@ -83,30 +91,45 @@
     return { w, h, cx: inset.left + w / 2, cy: inset.top + h / 2 };
   }
 
-  const PAD = { overview: 1.0, closing: 1.0, hub: 1.03, planet: 1.03, frame: 1.0, diagram: 1.035, code: 1.035, data: 1.035 };
+  const PAD = { overview: 1.0, closing: 1.07, hub: 1.03, planet: 1.03, frame: 1.0, diagram: 1.035, code: 1.035, data: 1.035 };
+  const fitScale = (box, pad, free) => Math.min(free.w / (box.w * pad), free.h / (box.h * pad));
 
   function fitNode(id) {
     const node = nodes[id];
-    const free = area();
-    const pad = PAD[node.kind] || 1.03;
     const box = node.kind === 'frame' ? FRAME_BOX : DETAIL.has(node.kind) ? PORTAL_BOX : node;
-    const s = Math.min(free.w / (box.w * pad), free.h / (box.h * pad));
-    return { x: node.x, y: node.y, s, r: node.rot || 0 };
+    return { x: node.x, y: node.y, s: fitScale(box, PAD[node.kind] || 1.03, area()), r: node.rot || 0 };
   }
 
+  // #world is never promoted to its own compositor layer. Promoting it for each flight (will-change) made
+  // Chrome re-layer and re-raster the whole 60,000px canvas at take-off and landing, so the screen froze,
+  // jumped and turned from blurry to sharp on arrival. Unpromoted, every frame is drawn sharp at its own scale.
   function apply(next) {
     cam = next;
     const free = area();
     world.style.transform =
       `translate(${free.cx}px,${free.cy}px) rotate(${-cam.r}deg) scale(${cam.s}) translate(${-cam.x}px,${-cam.y}px)`;
-    // A dotted plane far behind the canvas: it scales and slides at a fraction of the camera (parallax).
-    const base = fitNode('overview').s;
+    // A dotted plane far behind the canvas: it scales and slides at a fraction of the camera (parallax),
+    // spreading out from the centre of the free area. The plane starts 30% of the stage above and left of it.
+    const base = fitScale(nodes.overview, PAD.overview, free);
     const depth = Math.pow(cam.s / base, 0.3);
     const grid = 38 * depth;
     const shift = 0.55 * base * depth;
+    const wrap = (value) => ((value % grid) + grid) % grid;
     backdrop.style.backgroundSize = `${grid}px ${grid}px`;
-    backdrop.style.backgroundPosition = `${(-cam.x * shift) % grid}px ${(-cam.y * shift) % grid}px`;
+    backdrop.style.backgroundPosition = `${wrap(free.cx + 0.3 * innerWidth - cam.x * shift)}px `
+      + `${wrap(free.cy + 0.3 * innerHeight - cam.y * shift)}px`;
     backdrop.style.transform = `rotate(${-cam.r}deg)`;
+    reveal(free);
+  }
+
+  // The camera that keeps the world point under (px, py) in place while the scale becomes s.
+  function zoomAround(px, py, s) {
+    const anchor = toWorld(px, py);
+    const free = area();
+    const a = (cam.r * Math.PI) / 180;
+    const dx = (px - free.cx) / s;
+    const dy = (py - free.cy) / s;
+    return { x: anchor.x - (dx * Math.cos(a) - dy * Math.sin(a)), y: anchor.y - (dx * Math.sin(a) + dy * Math.cos(a)), s, r: cam.r };
   }
 
   // Screen point → world point under the current camera.
@@ -148,51 +171,576 @@
     };
   }
 
-  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  // Progress along a flight with start speed v0 (in path lengths per flight time) and a soft landing:
+  // e(t) = 1 − (1 − t)³(1 + (3 − v0)t). Motion starts at once, peaks at about a third of the time at 1.7 times
+  // the mean speed (the old cubic in-out sat still for the first tenth and peaked at 3 times) and settles gently.
+  const ease = (t, v0) => 1 - (1 - t) ** 3 * (1 + (3 - v0) * t);
+  const REST_SPEED = 0.35;
+  const KICK_TIME = 200;  // ms over which the velocity taken over from an interrupted flight fades out
 
-  // ``arrive`` runs once the flight is ``at`` (0-1) of the way there; zoom-outs reveal the shallower level late.
-  function fly(target, instant = false, arrive = null, at = 0) {
-    cancelAnimationFrame(flight);
-    pending?.();
-    pending = arrive;
+  // Where flight f has the camera at `time`: the eased point on its path, plus the part of the velocity taken
+  // over from an interrupted flight that its own path does not cover (kick), fading out long before landing.
+  // w is the width of world in view.
+  function flightAt(f, time) {
+    const t = Math.min(1, Math.max(0, (time - f.started) / f.duration));
+    const e = ease(t, f.v0);
+    let [x, y, w] = f.path.at(e);
+    let r = f.from.r + f.turn * e;
+    if (f.kick) {
+      const since = Math.max(0, time - f.started);
+      const k = since * Math.exp(-since / KICK_TIME) * (1 - t) ** 2;
+      x += f.kick[0] * k * w;
+      y += f.kick[1] * k * w;
+      w *= Math.exp(f.kick[2] * k);
+      r += f.kick[3] * k;
+    }
+    return { t, e, x, y, w, r };
+  }
+
+  // Velocity of a flight per ms: pan in widths of view, zoom in e-folds, turn in degrees.
+  function velocity(f, time) {
+    const a = flightAt(f, time - 1);
+    const b = flightAt(f, time + 1);
+    return [(b.x - a.x) / (2 * a.w), (b.y - a.y) / (2 * a.w), Math.log(b.w / a.w) / 2, (b.r - a.r) / 2];
+  }
+
+  // An interrupted flight hands its velocity on, so quick key presses chain into one motion instead of stopping
+  // and starting. The part along the new path becomes its start speed (negative when turned back: the camera
+  // swings round instead of reversing within one frame); the rest is the kick that fades out (flightAt).
+  function carry(previous, now, path, turn, duration) {
+    if (!previous || now >= previous.started + previous.duration) return { v0: REST_SPEED, kick: null };
+    const v = velocity(previous, now);
+    const [x0, y0, w0] = path.at(0);
+    const [x1, y1, w1] = path.at(1e-3);
+    const tangent = [(x1 - x0) / w0 / 1e-3, (y1 - y0) / w0 / 1e-3, Math.log(w1 / w0) / 1e-3];
+    const norm = tangent.reduce((sum, value) => sum + value * value, 0);
+    const along = tangent.reduce((sum, value, i) => sum + value * v[i], 0) / norm;
+    const v0 = Number.isFinite(along) ? Math.min(2.4, Math.max(-2.4, along * duration)) : REST_SPEED;
+    const kick = [...tangent, turn].map((value, i) => v[i] - (value * v0) / duration);
+    return { v0, kick: kick.every(Number.isFinite) ? kick : null };
+  }
+
+  // Fly the camera to ``target``. Short hops take about 0.65 s and the longest moves 1.4 s (before: 0.72-2.6 s);
+  // what each level shows follows the camera on every frame (reveal), so nothing is left to fade in afterwards.
+  function fly(target, instant = false) {
+    const now = performance.now();
+    const previous = flight;
+    // What the flight or hand-back this one takes over from still holds down eases out (capsAt), never at once.
+    const hand = capsAt(now);
+    const holding = Boolean(hand.dimCap || hand.coverCap || hand.titleCap != null);
+    flight = null;
+    wheelTo = null;
+    letGo = null;
+    pin = null;
+    stopDir = 0;
+    clearTimeout(quietTimer);  // a pinch's settle under reduced motion no longer applies
+    quietFrom = 0;
     if (!cam || instant || reducedMotion.matches) {
-      world.classList.remove('moving');
+      closing = closingGoal();
+      titleAway = 0;
       apply(target);
-      if (pending) [pending, arrive] = [null, pending];
-      arrive?.();
+      world.classList.remove('moving');
       return;
     }
     const from = cam;
     const free = area();
     const path = zoomPath([from.x, from.y, free.w / from.s], [target.x, target.y, free.w / target.s]);
+    const turn = ((((target.r - from.r) % 360) + 540) % 360) - 180;
     if (!Number.isFinite(path.length) || !path.at(0.5).every(Number.isFinite)) {
       fly(target, true);
       return;
     }
-    const turn = ((((target.r - from.r) % 360) + 540) % 360) - 180;
-    const duration = Math.min(2600, Math.max(720, path.length * 820 + Math.abs(turn) * 9));
-    const started = performance.now();
-    world.classList.add('moving');
-    const tick = (now) => {
-      const t = Math.min(1, (now - started) / duration);
-      const e = ease(t);
-      const [x, y, w] = path.at(e);
-      apply({ x, y, s: free.w / w, r: from.r + turn * e });
-      if (pending && t >= at) {
-        const run = pending;
-        pending = null;
-        run();
-      }
-      if (t < 1) flight = requestAnimationFrame(tick);
-      else {
-        apply(target);
-        world.classList.remove('moving');  // re-rasterise text sharply at rest
-      }
-    };
-    flight = requestAnimationFrame(tick);
+    if (path.length < 1e-3 && Math.abs(turn) < 0.05) {
+      // Already there (a step back after a one-pixel pan): the closing blend still runs on wall time (tick).
+      apply(target);
+      world.classList.remove('moving');
+      if (holding) letGo = { from: lastHeld, at: now, ...hand };
+      schedule();
+      return;
+    }
+    const duration = Math.min(1400, Math.max(600, 240 + 600 * Math.sqrt(path.length) + 3 * Math.abs(turn)));
+    const heldTo = subjectAt(target, free);
+    // A flight cut short goes on from the subject as it was drawn; one from rest takes off from what the camera
+    // gives any effect (subjectAt), so the hub the overview is centred on does not open on the way to a frame.
+    const chained = previous && now < previous.started + previous.duration;
+    flight = { path, from, target, turn, duration, started: now, w: free.w, ...carry(previous, now, path, turn, duration),
+      closingFrom: closing, closingTo: closingGoal(), awayFrom: titleAway, heldTo,
+      heldFrom: chained ? lastHeld : subjectAt(cam, free, lastHeld || holdsAt(cam), true),
+      // Leaving the closing view for somewhere outside the hub, the message stays until the camera is on its way.
+      leaving: heldTo.topics[layers.containers.indexOf(layers.hub)] < 0.5, hand: holding ? { at: now, ...hand } : null };
+    const atTarget = topicDims(heldTo.topics, Math.log2(target.s / fitScale(nodes.overview, PAD.overview, free)), flight.closingTo);
+    if (flight.closingTo !== flight.closingFrom) {
+      // Into or out of the closing view a topic is never drawn brighter than at both ends: the subject letting go
+      // and the later parts dimming run at different times and would otherwise lift p5 and p6 in between.
+      flight.dimCap = atTarget.map((v, i) => Math.max(v, shown.get(layers.containers[i].element) ?? 1));
+    }
+    if ((titleAway > 0 && flight.closingTo <= flight.closingFrom) || hand.titleCap != null) {
+      // A flight that cancels the way into the closing view brings the hub title back at once, but never brighter
+      // than it is drawn at take-off or at the target (the hub stepped back), so it neither relights nor goes blank.
+      // So does a flight that takes over from one that held the title down.
+      const hub = layers.containers.indexOf(layers.hub);
+      const inner = 1 - 0.78 * smooth(Math.log2(target.s / fitScale(nodes.hub, PAD.hub, free)), 1, 2);
+      flight.titleCap = Math.max(atTarget[hub] * inner * (1 - smooth(flight.closingTo, 0, 0.65)),
+        (shown.get(layers.title) ?? 1) * (shown.get(layers.hub.element) ?? 1));
+      // Where the hub steps back at the target, its frame labels come back with the title (reveal); a flight that
+      // takes over from one that held them otherwise lets them go from where they are.
+      const label = layers.frames.find((frame) => frame.container.hub)?.cover;
+      flight.labelHold = atTarget[hub] < 0.5 ? true : chained && previous.labelHold != null ? shown.get(label) ?? 0 : null;
+      // Nor is the cover of the topic it heads for lit up on the way before it opens.
+      flight.coverCap = layers.containers.map((container, i) => {
+        if (!container.cover || heldTo.topics[i] < 0.5) return 1;
+        const open = heldTo.topics[i] * smooth(Math.log2(target.s / fitScale(container.node, PAD[container.node.kind], free)), -0.9, -0.3);
+        return Math.max(shown.get(container.cover) ?? 1, (1 - smooth(open, 0, 0.5)) * atTarget[i]);
+      });
+    }
+    world.classList.add('moving');  // the landing signal for tools and tests; no style depends on it
+    schedule();
   }
 
-  // ------------------------------------------------------------ zoom reveal (level of detail)
+  function schedule() {
+    if (!frameRequest) frameRequest = requestAnimationFrame(tick);
+  }
+
+  // The ceilings that hold topics, covers and the hub title down at `time`: a flight's own (fly), and those of
+  // what it or free input took over from (hand, letGo), which ease up to nothing over 450 ms. Whatever takes over
+  // next starts from them, so a second key, a wheel notch or a drag does not bring anything back in one frame.
+  function capsAt(time) {
+    const from = flight ? flight.hand : letGo;
+    const k = from ? smooth(time - from.at, 0, 450) : 1;
+    const hand = k < 1 ? from : null;
+    const up = (v) => (v == null ? null : mix(v, 1, k));
+    const low = (a, b) => (a == null ? b : b == null ? a : Math.min(a, b));
+    const each = (own, held) => (own || held ? layers.containers.map((_, i) => low(own?.[i], up(held?.[i])) ?? 1) : undefined);
+    return { dimCap: each(flight?.dimCap, hand?.dimCap), coverCap: each(flight?.coverCap, hand?.coverCap),
+      titleCap: low(flight?.titleCap, up(hand?.titleCap)) ?? undefined };
+  }
+
+  // The stiffness (per ms) of a glide over `gap` (log scale) that starts at speed v. A critically damped spring
+  // speeds up only while w > 2v / gap, so it takes that, within 1/120 (about 0.6 s to arrive from rest) and
+  // 1/70: a zoom that had almost stopped is not thrown into a second, faster one.
+  const glideRate = (gap, v) => Math.min(1 / 70, Math.max(1 / 120, (2 * Math.max(0, v * Math.sign(gap))) / Math.abs(gap || 1)));
+
+  // One animation loop drives flights, eased wheel zoom and the closing blend.
+  function tick(now) {
+    frameRequest = 0;
+    // Easing below runs on wall time even when frames are slow; the cap only guards against a backgrounded tab.
+    const dt = lastTick ? Math.min(250, Math.max(0, now - lastTick)) : 16;
+    lastTick = now;
+    if (flight) {
+      const f = flight;
+      const { t, e, x, y, w, r } = flightAt(f, now);
+      f.e = e;
+      // The closing message arrives over the second half of the flight that zooms out to it. It leaves over the
+      // first half of a flight back into the hub, so it never covers the frames the camera closes in on, and over
+      // the second half of a flight elsewhere, so the title and frames do not come back only to step back again.
+      // A blend already under way when the flight starts goes on from where it is.
+      closing = mix(f.closingFrom, f.closingTo, f.closingTo > f.closingFrom ? smooth(e, 0.5 * (1 - f.closingFrom), 1)
+        : f.leaving ? smooth(e, 0.5, 1) : smooth(e, 0, 0.45));
+      // The hub title leaves over the first half of a flight into the closing view. A flight cut short or
+      // restarted takes it on from where it is, so it never jumps back.
+      titleAway = f.closingTo > f.closingFrom ? mix(f.awayFrom, 1, smooth(e, 0, 0.5)) : f.awayFrom * (1 - smooth(e, 0, 0.45));
+      if (t < 1) {
+        apply({ x, y, s: f.w / w, r });
+      } else {
+        flight = null;
+        closing = f.closingTo;
+        titleAway = 0;  // at rest the closing blend alone decides
+        apply(f.target);
+        world.classList.remove('moving');
+      }
+    } else {
+      // Outside a flight the closing blend and the title run on wall time, under a wheel zoom too, so they are
+      // done by the time the camera stops.
+      const step = reducedMotion.matches ? 1 : dt / 350;
+      const goal = closingGoal();
+      if (closing !== goal || titleAway > 0 || letGo || (pin && !pin.done)) {
+        closing = goal > closing ? Math.min(goal, closing + step) : Math.max(goal, closing - step);
+        titleAway = Math.max(0, titleAway - step);
+        if (!wheelTo) reveal(area());
+      }
+      if (wheelTo) {
+        // Each notch moves the goal; the camera follows exponentially, so a burst of notches is one smooth zoom.
+        // Once the wheel is quiet, a goal halfway through a swap of detail moves on to where the swap is done:
+        // the way the gesture went, or to the nearer end after a nudge (a slow scroll is not taken further).
+        // A pinch streams a step every frame, so 48 ms without one means the fingers have stopped.
+        if (!wheelTo.settled && now - wheelTo.at > (wheelTo.pinch ? 48 : 120)) {
+          wheelTo.settled = true;
+          settleWheel();
+        }
+        // The glide on to the end of a swap is a critically damped spring that starts at the zoom's own speed,
+        // so it reads as the zoom running out, never as a second, faster zoom. A notch or pinch step during the
+        // glide rides on top of it (boost) at the pace it has at rest.
+        const gap = Math.log(wheelTo.s / cam.s);
+        let move;
+        if (wheelTo.glide) {
+          const w = wheelTo.w;
+          const b = (wheelTo.boost || 0) + (wheelTo.boostPinch || 0);
+          const x = -(gap - b);
+          const v = wheelTo.v;
+          const k = Math.exp(-w * dt);
+          move = (x + (v + w * x) * dt) * k - x;
+          wheelTo.v = (v - w * (v + w * x) * dt) * k;
+          // Notches and pinch steps each drain at their own pace, whichever came last.
+          const notch = (wheelTo.boost || 0) * (1 - Math.exp(-dt / 80));
+          const pinch = (wheelTo.boostPinch || 0) * (1 - Math.exp(-dt / 40));
+          wheelTo.boost = (wheelTo.boost || 0) - notch;
+          wheelTo.boostPinch = (wheelTo.boostPinch || 0) - pinch;
+          move += notch + pinch;
+        } else {
+          move = gap * (1 - Math.exp(-dt / wheelTo.tau));
+          // A pinch headed for the end of a swap does not slow down in the quiet before its settle (end), so the
+          // glide after it starts at the fingers' speed instead of dipping and speeding up again. While steps come,
+          // the camera follows the fingers, slowing as they slow.
+          if (wheelTo.end && !wheelTo.settled && now - wheelTo.at > 20) {
+            const room = Math.log(wheelTo.end / cam.s);
+            if (room * wheelTo.dir > 0) {
+              const hold = Math.min(Math.max(0, wheelTo.v * wheelTo.dir) * dt, Math.abs(room) * (1 - Math.exp(-dt / wheelTo.tau)));
+              if (move * wheelTo.dir < hold) move = wheelTo.dir * hold;
+            }
+          }
+          wheelTo.v = dt ? move / dt : 0;
+        }
+        const done = wheelTo.settled && Math.abs(gap) < 0.0007 && Math.abs(wheelTo.v * 16) < 0.0007;
+        pinOn(wheelTo, now);
+        apply(zoomAround(wheelTo.x, wheelTo.y, done ? wheelTo.s : cam.s * Math.exp(move)));
+        // At rest the pin (settleFree) carries the zoom's easing on from where it is.
+        if (done && wheelTo.pinTo) pin = { from: wheelTo.pinFrom, to: wheelTo.pinTo, at: wheelTo.pinAt, done: false, cam };
+        if (done) {
+          wheelTo = null;
+          reveal(area());  // bodies dissolved on the way are hidden now that the camera rests (show)
+          world.classList.remove('moving');
+          settleFree();
+        }
+      }
+    }
+    if (flight || wheelTo || closing !== closingGoal() || titleAway > 0 || letGo || (pin && !pin.done)) schedule();
+    else lastTick = 0;
+  }
+
+  // ------------------------------------------------------------ level of detail
+  // What the canvas shows is a function of the camera alone. Each layer fades with its zoom level (log2 of the
+  // scale over the scale that frames a node of its kind: 0 at that framing, −1 at half its size) and dims by how
+  // far the screen centre is from it. Keys, the wheel and a pinch therefore reveal the same detail at the same
+  // size, nothing fades on a timer after the camera stops, and an interrupted flight leaves nothing half done.
+  // Only the closing step is a state of its own, blended over the flight into or out of it (tick).
+  const smooth = (x, a, b) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  const mix = (a, b, t) => a + (b - a) * t;
+  const closingGoal = () => (!detour && current()?.id === 'closing' ? 1 : 0);
+  const shown = new WeakMap();
+
+  // The swaps of detail that a free zoom must not come to rest in (zoom levels as in reveal): a frame's label
+  // and body dissolve over −1.6…−1 of the frame framing, a topic's cover and disc over −0.9…−0.3 of its own.
+  const SWAPS = { frame: [-1.6, -1], container: [-0.9, -0.3] };
+
+  // How much a camera centred on (x, y) is on a node: a circle lets go over the outer 40% of its radius, a
+  // window just past its edges.
+  const inCircle = (node, x, y) => 1 - smooth(Math.hypot(node.x - x, node.y - y) / (node.w / 2), 0.6, 1);
+  function inBox(node, x, y) {
+    const a = (-(node.rot || 0) * Math.PI) / 180;
+    const dx = x - node.x;
+    const dy = y - node.y;
+    const u = Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) / (node.w / 2);
+    const v = Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) / (node.h / 2);
+    return 1 - smooth(Math.max(u, v), 0.7, 1.15);
+  }
+
+  // The subject of a camera centred on `point`: how much it holds each frame and each topic. A node holds the
+  // camera when the centre is on it or on anything inside it, so the chain topic > frame > window under the
+  // camera is always at full strength: frames sit at 0.64 of a topic's radius and windows reach 0.83, where
+  // the topic's own circle has already let go.
+  function holdsAt({ x, y }) {
+    const frames = layers.frames.map((frame) =>
+      Math.max(inCircle(frame.node, x, y), ...frame.portals.map((portal) => inBox(portal.node, x, y))));
+    const topics = layers.containers.map((container) => Math.max(inCircle(container.node, x, y),
+      ...layers.frames.map((frame, j) => (frame.container === container ? frames[j] : 0))));
+    return { frames, topics };
+  }
+
+  // The subject a flight lands on: the holds of its target counted only as far as the target's zoom opens each
+  // topic, so the overview and closing views (centred on the hub but too far out to open it) hold nothing. A
+  // flight takes off (from) with every hold the camera already draws: once past the overview the others step
+  // back by them (reveal), so there they all count.
+  function subjectAt(camera, free, held = holdsAt(camera), from = false) {
+    const { frames, topics } = held;
+    const drawn = from ? smooth(Math.log2(camera.s / fitScale(nodes.overview, PAD.overview, free)), 0.1, 0.35) * (1 - closing) : 0;
+    const open = layers.containers.map((container) => Math.max(drawn,
+      smooth(Math.log2(camera.s / fitScale(container.node, PAD[container.node.kind], free)), -0.9, -0.3)));
+    return { frames: frames.map((v, j) => v * open[layers.containers.indexOf(layers.frames[j].container)]),
+      topics: topics.map((v, i) => v * open[i]) };
+  }
+  // How strongly each topic is drawn (reveal) for a subject, a zoom level over the overview and a closing blend.
+  function topicDims(focus, zOverview, closingV) {
+    const backOff = 0.72 * smooth(zOverview, 0.35, 1) * (1 - closingV);
+    const [lead, runnerUp] = [...focus].sort((a, b) => b - a);
+    return layers.containers.map((container, i) => (1 - backOff * Math.max(0, (focus[i] >= lead ? runnerUp ?? 0 : lead) - focus[i]))
+      * (container.later ? 1 - 0.75 * closingV : 1));
+  }
+  // A wheel zoom, pinch glide or settle glide knows where it will come to rest: its topics ease from how they
+  // are drawn to fully open or shut there (as the rest pin does, settleFree) over 200 ms, rather than following
+  // the moving screen centre, which can cross a frame's window in a frame or two and open a topic for that long.
+  // While steps still come, a topic is taken up only once the goal has stayed on it for 100 ms and, zooming in,
+  // only if it also holds the point under the pointer that the centre closes in on (pinOn): a burst whose goal
+  // only passes over a topic does not start to open it. Zooming out, a topic is let go only once the camera
+  // itself has left it or the zoom has settled, so notches out and back in do not shut the topic it never left.
+  function aimPin(next, previous = null) {
+    const aimTo = holdsAt(zoomAround(next.x, next.y, next.rest || next.s)).topics.map((v) => (v >= 0.5 ? 1 : 0));
+    const now = performance.now();
+    if (previous?.pinTo) Object.assign(next, { pinTo: previous.pinTo, pinFrom: previous.pinFrom, pinAt: previous.pinAt });
+    else {
+      const drawn = (lastHeld || holdsAt(cam)).topics;
+      Object.assign(next, { pinTo: drawn.map((v) => (v >= 0.5 ? 1 : 0)), pinFrom: drawn.slice(), pinAt: now });
+    }
+    next.aimTo = aimTo;
+    next.toward = next.dir > 0 ? holdsAt(toWorld(next.x, next.y)).topics : null;
+    next.aimSince = aimTo.map((v, i) => (v && previous?.aimTo?.[i] ? previous.aimSince[i] : now));
+    pinOn(next, now);
+    return next;
+  }
+  function pinOn(wheel, now) {
+    const here = holdsAt(cam).topics;
+    const to = wheel.aimTo.map((v, i) => (v ? wheel.pinTo[i] || wheel.settled
+      || (now - wheel.aimSince[i] >= 100 && (!wheel.toward || wheel.toward[i] >= 0.5))
+      : wheel.pinTo[i] && !wheel.settled && wheel.dir < 0 && here[i] >= 0.5) ? 1 : 0);
+    if (to.some((v, i) => v !== wheel.pinTo[i])) {
+      // A topic let go while its hold is not drawn yet (it is not open and, this far out, steps nobody back:
+      // the overview centred on the hub) goes at once, so its 200 ms ease does not dim the others as the zoom
+      // reaches the band where they step back.
+      const free = area();
+      const quiet = smooth(Math.log2(cam.s / fitScale(nodes.overview, PAD.overview, free)), 0.35, 1) < 0.02;
+      const pinFrom = (lastHeld || holdsAt(cam)).topics.map((v, i) => (quiet && !to[i] && wheel.pinTo[i]
+        && v * smooth(Math.log2(cam.s / fitScale(layers.containers[i].node, PAD[layers.containers[i].node.kind], free)), -0.9, -0.3) < 0.02 ? 0 : v));
+      Object.assign(wheel, { pinTo: to, pinFrom, pinAt: now });
+    }
+  }
+  // From subject a to subject b at progress k: each hold rises over `rise` and falls over `fall` (both 0-1 of k).
+  function blend(a, b, k, rise = [0, 1], fall = rise) {
+    const step = (from, to) => mix(from, to, to > from ? smooth(k, ...rise) : smooth(k, ...fall));
+    return { frames: a.frames.map((v, j) => step(v, b.frames[j])), topics: a.topics.map((v, i) => step(v, b.topics[i])) };
+  }
+
+  // Where a quiet wheel zoom rests (tick): its goal or, halfway through a swap, the end of the swap the gesture
+  // went to (the nearer one after a nudge). A sideways scroll that moves the centre works it out again.
+  function settleWheel() {
+    const net = Math.log2(wheelTo.raw / wheelTo.from);
+    const s = settleScale(wheelTo.raw, wheelTo.x, wheelTo.y, Math.abs(net) < 0.15 ? 0 : wheelTo.dir);
+    if (s !== wheelTo.s) {
+      wheelTo.s = s;
+      // A spring that would overshoot (the camera already fast for the gap left) is not started: the follower
+      // eases the rest of the way.
+      const gap = Math.log(s / cam.s);
+      const w = glideRate(gap, wheelTo.v);
+      if (w * Math.abs(gap) >= Math.abs(wheelTo.v) || wheelTo.v * gap <= 0) {
+        wheelTo.glide = true;
+        wheelTo.w = w;
+      }
+    }
+    wheelTo.rest = wheelTo.s;
+    aimPin(wheelTo, wheelTo);  // where it rests is settled now: its topics are taken up at once
+  }
+
+  // The scale a free zoom settles on: s itself or, when s would rest halfway through a swap, the end of the swap
+  // the zoom was heading for (dir 1 in, −1 out, 0 the nearer end), so the next notch always passes through it.
+  function settleScale(s, px, py, dir) {
+    const free = area();
+    const through = (fit, [lo, hi]) => {
+      const z = Math.log2(s / fit);
+      if (z <= lo || z >= hi) return null;
+      return fit * 2 ** (dir < 0 ? lo : dir > 0 ? hi : z < (lo + hi) / 2 ? lo : hi);
+    };
+    let settled = through(fitScale(FRAME_BOX, PAD.frame, free), SWAPS.frame);
+    if (settled === null) {
+      const at = zoomAround(px, py, s);
+      const id = CONTAINERS.find((c) => Math.hypot(nodes[c].x - at.x, nodes[c].y - at.y) < nodes[c].w / 2);
+      if (id) settled = through(fitScale(nodes[id], PAD[nodes[id].kind], free), SWAPS.container);
+    }
+    return settled === null ? s : clampScale(settled);
+  }
+
+  // Opacity is written only when it changes; at 0 the element also leaves painting and hit testing. Visibility
+  // is inherited, so hiding a frame body restyles its whole subtree: with `lazy` (the camera is moving) a body
+  // that dissolves keeps it and is hidden once the camera rests, rather than several at once mid-flight, and a
+  // hidden body that the camera only grazes (under 5%) is not shown.
+  const hidden = new WeakMap();
+  function show(element, value, lazy = false) {
+    if (!element) return;
+    const v = value < 0.004 ? 0 : value > 0.996 ? 1 : Math.round(value * 1000) / 1000;
+    const hide = v === 0;
+    if ((hidden.get(element) ?? false) !== hide && !(lazy && (hide || v < 0.05))) {
+      hidden.set(element, hide);
+      element.style.visibility = hide ? 'hidden' : '';
+    }
+    if (shown.get(element) === v) return;
+    shown.set(element, v);
+    element.style.opacity = String(v);
+  }
+
+  const layers = (() => {
+    const containers = CONTAINERS.map((id) => {
+      const element = elementOf(id);
+      const cover = document.getElementById(`cover-${id}`);
+      return { id, node: nodes[id], element, hub: id === 'hub', later: element.matches('.part-2, .part-3'),
+        cover, disc: $('.planet-disc', element), en: cover && $('.pc-en', cover), outcome: cover && $('.outcome', cover),
+        open: 0, lift: null };
+    });
+    const byId = Object.fromEntries(containers.map((container) => [container.id, container]));
+    const frames = FRAMES.filter((key) => nodes[key] && elementOf(key)).map((key) => {
+      const element = elementOf(key);
+      return { node: nodes[key], element, container: byId[nodes[key].parent], cover: $('.frame-cover', element),
+        body: $('.frame-body', element), text: $$('.frame-body > :not(.portal)', element), focus: 0,
+        portals: [...DETAIL].map((kind) => `${key}.${kind}`).filter((id) => nodes[id] && elementOf(id)).map((id) =>
+          ({ node: nodes[id], element: elementOf(id), caption: $('figcaption', elementOf(id)) })) };
+    });
+    return { containers, frames, hub: byId.hub, title: $('.hub-title'), detail: $('.hub-detail'), message: $('.hub-closing'),
+      eyebrow: $('.hub-eyebrow'), spine: $$('#world .spine-text'), routes: $$('#world .route'), orbits: $('#world .orbits') };
+  })();
+
+  function reveal(free) {
+    const s = cam.s;
+    const level = (box, pad) => Math.log2(s / fitScale(box, pad, free));
+    const zOverview = level(nodes.overview, PAD.overview);
+    const zFrame = level(FRAME_BOX, PAD.frame);
+    const zPortal = level(PORTAL_BOX, PAD.diagram);
+    const zHub = level(nodes.hub, PAD.hub);
+    const zPlanet = level(nodes.p1 || nodes.hub, PAD.planet);  // every planet has the same size
+    // World distance from the centre of the free area to the farthest corner of the screen.
+    const reach = Math.hypot(Math.max(free.cx, innerWidth - free.cx), Math.max(free.cy, innerHeight - free.cy)) / s;
+    const shut = 1 - closing;
+    // Past the overview the labels of the inner rings come in. The closing view is tighter than the overview
+    // on a narrow screen, so it rules them out itself.
+    const deep = smooth(zOverview, 0.3, 0.9) * shut;
+    // The title and the closing message share one place in the hub: one leaves as the other arrives, and the
+    // hub's two frames leave with the title. On the way into the closing view the title leaves from take-off
+    // (titleAway), so it does not come back as the camera passes the hub.
+    const framesOut = 1 - smooth(closing, 0, 0.65);
+    const titleOut = Math.min(framesOut, 1 - titleAway);
+    const messageIn = smooth(closing, 0.35, 1);
+
+    // The subject. Under free input it is what the screen centre is on. In a flight it is held at the flight's
+    // two ends (fly) and handed over once, one way, so topics and frames the path only passes over neither open
+    // nor dim the others (at full pan speed that blinked). The destination takes hold early and the origin lets
+    // go late, as the camera closes in on one and leaves the other behind, so the origin does not shut while it
+    // still fills the screen. A flight stopped by free input hands back to the camera's subject over 450 ms, and
+    // once free input has come to rest each topic eases fully open or shut (pin): a centre left on a topic's rim
+    // would otherwise show it halfway, which the fade-through draws as nothing.
+    let held;
+    const time = performance.now();
+    if (flight) {
+      held = blend(flight.heldFrom, flight.heldTo, flight.e || 0, [0.2, 0.6], [0.5, 0.9]);
+    } else {
+      held = holdsAt(cam);
+      if (pin && (pin.cam.x !== cam.x || pin.cam.y !== cam.y || pin.cam.s !== cam.s || pin.cam.r !== cam.r)) {
+        letGo = { from: lastHeld, at: time, ...capsAt(time) };  // the camera moves on: hand back from the pinned topics
+        pin = null;
+        schedule();
+      }
+      if (letGo) {
+        const k = smooth(time - letGo.at, 0, 450);
+        if (k < 1) held = blend(letGo.from, held, k);
+        else letGo = null;
+      }
+      if (wheelTo?.pinTo) {
+        const k = smooth(time - wheelTo.pinAt, 0, 200);
+        held = { frames: held.frames, topics: wheelTo.pinFrom.map((v, i) => mix(v, wheelTo.pinTo[i], k)) };
+      }
+      if (pin) {
+        const k = smooth(time - pin.at, 0, 200);
+        pin.done = k >= 1;
+        held = { frames: held.frames, topics: held.topics.map((v, i) => mix(pin.from[i], pin.to[i], k)) };
+      }
+    }
+    lastHeld = held;
+    layers.frames.forEach((frame, j) => { frame.focus = held.frames[j]; });
+    // Topics: the subject opens as it fills the screen, and the others step back to 28% by how far the subject
+    // leads them, so in a hand-over neither of the two dims itself.
+    const focus = held.topics;
+    const dims = topicDims(focus, zOverview, closing);
+    const caps = capsAt(time);
+    let hubTitle = 0;
+    layers.containers.forEach((container, i) => {
+      const z = container.hub ? zHub : zPlanet;
+      container.open = focus[i] * smooth(z, -0.9, -0.3);
+      const dim = Math.min(caps.dimCap?.[i] ?? 1, dims[i]);
+      const inner = 1 - 0.78 * smooth(z, 1, 2);  // a frame inside has become the subject
+      show(container.element, dim);
+      if (container.hub) {
+        const title = Math.min(titleOut * inner, (caps.titleCap ?? 1) / Math.max(dim, 1e-3));
+        show(layers.title, title);
+        hubTitle = title;
+        show(layers.detail, title * container.open);
+        show(layers.message, messageIn);
+        return;
+      }
+      // A topic's cover leaves before its frames' labels and its description arrive (a fade through, never two
+      // texts over each other).
+      show(container.cover, Math.min(caps.coverCap?.[i] ?? 1, (1 - smooth(container.open, 0, 0.5)) * dim));
+      show(container.disc, smooth(container.open, 0.5, 1) * inner);
+      show(container.en, deep);
+      if (container.outcome) {
+        show(container.outcome, closing);
+        const lift = Math.round(400 * shut);
+        if (lift !== container.lift) {
+          container.lift = lift;
+          container.outcome.style.transform = `translate(-50%,${lift}px)`;
+        }
+      }
+    });
+    layers.routes.forEach((route) => show(route, 0.95 * (1 - smooth(zOverview, 0.25, 0.8)) * shut));
+    show(layers.orbits, 1 - 0.25 * deep);
+    show(layers.eyebrow, deep);
+    layers.spine.forEach((text) => show(text, deep));
+
+    // Frames: a label (cover) while small, the readable body once large, swapped in one short dissolve that the
+    // camera crosses in about a tenth of a flight (SWAPS). Close up, neighbouring frames step back.
+    const body = smooth(zFrame, -1.5, -1);
+    const label = 1 - smooth(zFrame, -1.6, -1.3);
+    const frameBack = 0.62 * smooth(zFrame, -1.2, -0.4);
+    const portalBack = 0.72 * smooth(zPortal, -1.3, -0.5);
+    const captionGone = smooth(zPortal, -1, -0.4);
+    const textBack = 0.6 * smooth(zFrame, 1.2, 2);
+    const moving = Boolean(flight || wheelTo || gesture?.pinch);
+    const strongest = new Map();  // per topic, the two strongest frame holds
+    // Frames off screen hide their body, so no large subtree is left to switch on in one frame of a flight,
+    // and catch up on the first frame they are near the screen again.
+    const near = layers.frames.filter((frame) => {
+      if (Math.hypot(frame.node.x - cam.x, frame.node.y - cam.y) - frame.node.w / 2 > reach) {
+        show(frame.body, 0, moving);
+        return false;
+      }
+      const [first, second] = strongest.get(frame.container) || [0, 0];
+      strongest.set(frame.container, frame.focus >= first ? [frame.focus, first] : [first, Math.max(second, frame.focus)]);
+      return true;
+    });
+    for (const frame of near) {
+      const container = frame.container;
+      // The closing message spans the hub, so its two frames make room for it. A frame steps back by how far
+      // another frame of its topic leads it, so the leading frame stays at full strength in a hand-over too.
+      const base = mix(container.hub ? 0.6 : 0.5, 1, container.open) * (container.hub ? framesOut : 1);
+      const [first, second] = strongest.get(container);
+      const other = frame.focus >= first ? second : first;
+      // On the way into the closing view the hub's frames keep stepping back until they leave with the title.
+      const back = container.hub ? Math.max(frameBack, 0.62 * titleAway) : frameBack;
+      show(frame.element, base * (1 - back * Math.max(0, other - frame.focus)));
+      // A flight that cancels the way into the closing view brings the hub's frame labels back with its title
+      // (titleCap), so the two circles are not left empty while the hub is still the subject; they go as it hands
+      // over, or from where they are when another flight takes over (fly).
+      const hold = !container.hub || flight?.labelHold == null ? 0 : flight.labelHold === true
+        ? Math.min(hubTitle, 1 - smooth(flight.e || 0, 0.5, 0.9)) : flight.labelHold * (1 - smooth(flight.e || 0, 0, 0.3));
+      show(frame.cover, Math.max(smooth(container.open, 0.5, 1), hold) * label);
+      show(frame.body, body, moving);
+      if (body < 0.004) continue;
+      const portalFocus = frame.portals.map((portal) => inBox(portal.node, cam.x, cam.y));
+      const zoomedIn = Math.max(0, ...portalFocus);
+      frame.text.forEach((element) => show(element, 1 - textBack * zoomedIn));
+      frame.portals.forEach((portal, i) => {
+        show(portal.element, 1 - portalBack * zoomedIn * (1 - portalFocus[i]));
+        show(portal.caption, 1 - captionGone * portalFocus[i]);
+      });
+    }
+  }
+
   function chain(id) {
     // [container, frame, portal] for a node id.
     const node = nodes[id];
@@ -314,25 +862,13 @@
   }
 
   // ------------------------------------------------------------ navigation
-  const RANK = { overview: 0, hub: 1, planet: 1, frame: 2, detail: 3 };
-  const rankOf = (id) => {
-    const [container, frame, portal] = chain(id);
-    return portal ? 3 : frame ? 2 : container ? 1 : 0;
-  };
-
-  // Fly to a node and reveal its level: at once when zooming in or across, late when zooming out,
-  // so the content being left stays visible while it shrinks into its parent.
+  // Fly to a node. The focus classes (links, depth, phone sheet) change at once; what is visible changes with
+  // the camera on the way (reveal), so the content being left stays in view while it shrinks into its parent.
   function travel(id, instant) {
     clearTimeout(settleTimer);
-    if (pending) {
-      const run = pending;
-      pending = null;
-      run();
-    }
     aim = id;
-    const outward = rankOf(id) < rankOf(focusId);
-    if (!outward) setFocus(id);
-    fly(fitNode(id), instant, outward ? () => setFocus(id) : null, 0.62);
+    setFocus(id);
+    fly(fitNode(id), instant);
   }
 
   function go(position, { instant = false, silent = false } = {}) {
@@ -529,11 +1065,14 @@
       segment.classList.toggle('now', position === index && !detour);
     });
     $$('.minutes[data-frame]').forEach((badge) => {
-      badge.textContent = formatMinutes(data.frames[badge.dataset.frame].minutes * path.factor);
+      // Rewriting 68 unchanged badges inside the canvas would re-lay it out at the start of every flight.
+      const text = formatMinutes(data.frames[badge.dataset.frame].minutes * path.factor);
+      if (badge.textContent !== text) badge.textContent = text;
     });
     $$('.path-menu [data-path]').forEach((button) => button.setAttribute('aria-checked', String(button.dataset.path === pathName)));
     $('[data-action="notes"]').setAttribute('aria-pressed', String(notesOpen));
     renderNotes(detour ? { id: aim, kind: nodes[aim]?.kind, frame: chain(aim)[1] } : step);
+    if (cam && closing !== closingGoal()) schedule();  // e.g. dragging away from the closing step fades it out
   }
 
   function outline(keys, factor) {
@@ -634,7 +1173,7 @@
 
   function refit() {
     if (detour) apply(cam);
-    else fly(fitNode(current().node), true);
+    else fly(fitNode(current().node), !flight);  // a flight under way turns to the new framing and keeps its speed
     const [container, frame, portal] = chain(focusId);
     showSheet(portal || frame || container || 'overview');
   }
@@ -790,22 +1329,55 @@
   const pointers = new Map();
   let gesture = null;
 
+  // At rest a topic is open or shut, never left halfway because the centre stopped on its rim: holds ease to 1
+  // inside 0.8 of the radius and to 0 outside it (reveal).
+  function pinHere() {
+    const spatial = holdsAt(cam).topics;
+    const to = spatial.map((v) => (v >= 0.5 ? 1 : 0));
+    if (to.some((v, i) => v !== spatial[i])) {
+      pin = { from: (lastHeld || holdsAt(cam)).topics.slice(), to, at: performance.now(), done: false, cam };
+      schedule();
+    }
+  }
+
   function settleFree() {
     clearTimeout(settleTimer);
     settleTimer = setTimeout(() => {
-      if (!detour || world.classList.contains('moving')) return;
+      if (!detour || flight || wheelTo) return;
+      pinHere();
       const id = focusFromCamera();
       aim = id;
       if (id !== focusId) setFocus(id);
       render();
+      // Other windows match the level of detail, not the width of view, so a presenter area of another shape
+      // shows the same: near the overview (how far the others step back) its level, closer in a topic's.
       const free = area();
-      channel?.postMessage({ type: 'cam', aim, x: cam.x, y: cam.y, r: cam.r, span: free.w / cam.s });
+      channel?.postMessage({ type: 'cam', aim, x: cam.x, y: cam.y, r: cam.r, span: free.w / cam.s,
+        level: Math.log2(cam.s / fitScale(nodes.p1 || nodes.hub, PAD.planet, free)),
+        hub: Math.log2(cam.s / fitScale(nodes.hub, PAD.hub, free)),
+        overview: Math.log2(cam.s / fitScale(nodes.overview, PAD.overview, free)) });
     }, 140);
   }
 
-  function enterFree() {
-    cancelAnimationFrame(flight);
-    world.classList.remove('moving');
+  // Free input takes the camera where it is: a flight stops, and a drag or pinch also ends an eased wheel zoom.
+  function enterFree({ keepWheel = false } = {}) {
+    const now = performance.now();
+    if (flight) {
+      stopDir = Math.sign(Math.log(flight.target.s / cam.s));
+      letGo = { from: lastHeld, at: now, ...capsAt(now) };
+      schedule();
+    }
+    if (wheelTo?.pinTo && !keepWheel) {
+      // A drag or pinch that ends a wheel zoom hands back from the topics as the zoom eased them, and goes on
+      // with what an earlier hand-back still holds down.
+      letGo = { from: lastHeld, at: now, ...capsAt(now) };
+      schedule();
+    }
+    if (flight || (wheelTo && !keepWheel)) {
+      flight = null;
+      if (!keepWheel) wheelTo = null;
+      if (!wheelTo) world.classList.remove('moving');
+    }
     if (!detour) {
       detour = true;
       render();
@@ -820,7 +1392,8 @@
         type: event.pointerType, time: performance.now() };
     } else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
-      gesture = { pinch: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, moved: true };
+      gesture = { pinch: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, moved: true,
+        from: cam.s };
       enterFree();
     }
   });
@@ -864,6 +1437,31 @@
     settleFree();
   });
 
+  // A glide around the screen point (x, y) to the scale s, as the end of a settling wheel zoom; at once under
+  // reduced motion. It goes the way of the glide, so a step that way goes on past s rather than starting over.
+  function glideTo(s, x, y) {
+    if (reducedMotion.matches) {
+      apply(zoomAround(x, y, s));
+      settleFree();
+      return;
+    }
+    wheelTo = aimPin({ s, raw: s, from: cam.s, x, y, tau: 80, at: -Infinity, dir: Math.sign(Math.log(s / cam.s)), settled: true, glide: true, v: 0,
+      w: glideRate(Math.log(s / cam.s), 0) }, wheelTo);
+    world.classList.add('moving');
+    schedule();
+  }
+
+  // A flight stopped by a drag or a sideways scroll may have left the camera halfway through a swap of detail:
+  // it glides on, around the screen centre, to where the swap is done (as after a wheel zoom or a pinch).
+  function settleHere() {
+    const free = area();
+    const s = settleScale(cam.s, free.cx, free.cy, stopDir);
+    stopDir = 0;
+    if (s === cam.s) return false;
+    glideTo(s, free.cx, free.cy);
+    return true;
+  }
+
   function endPointer(event) {
     if (!pointers.has(event.pointerId)) return;
     pointers.delete(event.pointerId);
@@ -871,6 +1469,17 @@
     const start = gesture;
     if (pointers.size > 0) return;
     gesture = null;
+    if (start?.pinch) {
+      stopDir = 0;
+      reveal(area());  // bodies dissolved during the pinch are hidden now that it has stopped (show)
+      if (event.type === 'pointercancel') return;
+      // A pinch let go halfway through a swap of detail glides on to where the swap is done, as the wheel does
+      // (to the nearer end after a small one).
+      const net = Math.log2(cam.s / start.from);
+      const s = settleScale(cam.s, start.mid.x, start.mid.y, Math.abs(net) < 0.15 ? 0 : Math.sign(net));
+      if (s !== cam.s) glideTo(s, start.mid.x, start.mid.y);
+      return;
+    }
     if (!start || start.pinch || event.type === 'pointercancel') return;
     if (start.type === 'touch') {
       const dx = event.clientX - start.startX;
@@ -882,9 +1491,15 @@
       }
       if (Math.hypot(dx, dy) > 10) return;
     }
-    if (start.moved) return;
+    if (start.moved) {
+      settleHere();
+      return;
+    }
     if (event.target.closest('.portal.is-focus a[href]')) return;  // evidence links open normally
-    const hit = event.target.closest('[data-node]');
+    // A body still mostly dissolved does not take clicks meant for the frame under its label.
+    let hit = event.target.closest('[data-node]');
+    const dissolved = hit?.closest('.frame-body');
+    if (dissolved && (shown.get(dissolved) ?? 1) < 0.5) hit = dissolved.closest('[data-node]');
     if (!hit) {
       zoomOut();
       return;
@@ -902,26 +1517,76 @@
     return Math.min(6, Math.max(min, s));
   }
 
+  let quietTimer = 0;
+  let quietFrom = 0;
   stage.addEventListener('wheel', (event) => {
     event.preventDefault();
-    enterFree();
+    enterFree({ keepWheel: true });
     const unit = event.deltaMode === 1 ? 16 : 1;
     if (!event.ctrlKey && Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
       const a = (cam.r * Math.PI) / 180;
       const wx = (event.deltaX * unit) / cam.s;
       apply({ x: cam.x + wx * Math.cos(a), y: cam.y + wx * Math.sin(a), s: cam.s, r: cam.r });
-      settleFree();
+      // The zoom now comes to rest somewhere else.
+      if (wheelTo?.settled) settleWheel();
+      else if (wheelTo) aimPin(wheelTo, wheelTo);
+      else if (!settleHere()) settleFree();
       return;
     }
+    stopDir = 0;
+    // A notch (or a pinch step, with ctrlKey) moves the goal; tick eases the camera there around the pointer,
+    // so a mouse wheel zooms smoothly instead of in 15% jumps. A notch the other way turns round from the goal
+    // as the notches set it (so in and out again returns exactly) or, if that is still behind the camera, from
+    // the camera: the zoom never runs on the old way. During the glide to the end of a swap the goal is that
+    // end, so it turns round from the camera; a pinch that only paused there goes on from the fingers' goal.
     const factor = Math.exp(-event.deltaY * unit * (event.ctrlKey ? 0.012 : 0.0016));
-    const anchor = toWorld(event.clientX, event.clientY);
-    const s = clampScale(cam.s * factor);
-    const free = area();
-    const a = (cam.r * Math.PI) / 180;
-    const dx = (event.clientX - free.cx) / s;
-    const dy = (event.clientY - free.cy) / s;
-    apply({ x: anchor.x - (dx * Math.cos(a) - dy * Math.sin(a)), y: anchor.y - (dx * Math.sin(a) + dy * Math.cos(a)), s, r: cam.r });
-    settleFree();
+    const dir = Math.sign(-event.deltaY);
+    const keep = wheelTo && wheelTo.dir === dir;
+    const resumed = Boolean(keep && event.ctrlKey && wheelTo.settled && wheelTo.glide && performance.now() - wheelTo.at <= 120);
+    let s = clampScale((!wheelTo ? cam.s : keep && !resumed ? wheelTo.s : !keep && wheelTo.glide ? cam.s : wheelTo.raw) * factor);
+    if (Math.log(s / cam.s) * dir < 0) s = clampScale(cam.s * factor);
+    const { clientX: x, clientY: y } = event;
+    clearTimeout(settleTimer);
+    if (reducedMotion.matches) {
+      // Without motion a notch lands at once, settled; the small steps of a pinch or a trackpad scroll settle
+      // once they stop, so the gesture is not taken through a swap step by step.
+      clearTimeout(quietTimer);
+      if (Math.abs(Math.log2(factor)) >= 0.1) {
+        quietFrom = 0;
+        apply(zoomAround(x, y, settleScale(s, x, y, dir)));
+        settleFree();
+        return;
+      }
+      quietFrom = quietFrom || cam.s;
+      apply(zoomAround(x, y, s));
+      quietTimer = setTimeout(() => {
+        const net = Math.log2(cam.s / quietFrom);
+        quietFrom = 0;
+        apply(zoomAround(x, y, settleScale(cam.s, x, y, Math.abs(net) < 0.15 ? 0 : Math.sign(net))));
+        settleFree();
+      }, 120);
+      return;
+    }
+    // A step during the glide out of a swap keeps that glide's spring rather than lunging at the new goal: a step
+    // the same way rides on it (boost, tick), and a step back turns the spring round.
+    const glide = Boolean(wheelTo && wheelTo.glide && !resumed);
+    // A notch back during the glide: the spring only brings the old motion to rest where the camera is, and the
+    // notch rides on it at an ordinary notch's pace. A nudge or a pinch step turns the spring itself round.
+    const turn = glide && !keep && !event.ctrlKey && Math.abs(Math.log2(factor)) >= 0.05;
+    const previous = wheelTo;
+    const from = keep ? wheelTo.from : cam.s;
+    // Where the zoom will rest if no step follows (tick's settle): the end of a swap it is in, the way it went or,
+    // after a nudge, the nearer one. A pinch past a nudge does not slow down before that end (tick).
+    const nudge = Math.abs(Math.log2(s / from)) < 0.15;
+    const rest = settleScale(s, x, y, nudge ? 0 : dir);
+    wheelTo = { s, raw: s, from, x, y, tau: event.ctrlKey ? 40 : 80, at: performance.now(), dir, settled: false, glide,
+      w: glide ? (keep ? wheelTo.w : turn ? 1 / 70 : glideRate(Math.log(s / cam.s), wheelTo.v)) : 0, v: wheelTo ? wheelTo.v : 0,
+      boost: glide && keep ? (wheelTo.boost || 0) + (event.ctrlKey ? 0 : Math.log(s / wheelTo.s)) : turn ? Math.log(s / cam.s) : 0,
+      boostPinch: glide && keep ? (wheelTo.boostPinch || 0) + (event.ctrlKey ? Math.log(s / wheelTo.s) : 0) : 0,
+      rest, end: event.ctrlKey && !nudge && Math.log(rest / s) * dir > 0 ? rest : 0, pinch: event.ctrlKey };
+    aimPin(wheelTo, previous);
+    world.classList.add('moving');
+    schedule();
   }, { passive: false });
 
   // Hide the chrome while presenting full screen and the pointer rests.
@@ -983,7 +1648,28 @@
     } else if (message.type === 'cam' && nodes[message.aim] && [message.x, message.y, message.r, message.span].every(Number.isFinite)) {
       remote = true;
       enterFree();
-      apply({ x: message.x, y: message.y, r: message.r, s: area().w / message.span });
+      const free = area();
+      const fit = fitScale(nodes.p1 || nodes.hub, PAD.planet, free);
+      let s = Number.isFinite(message.level) ? fit * 2 ** message.level : free.w / message.span;
+      if (Number.isFinite(message.overview) && message.overview < 1 && Number.isFinite(message.level)) {
+        // Near the overview, its level (how far the others step back), as far as that leaves the topic or hub
+        // under the centre shut, as it is in the sending window: a window of another shape has the overview
+        // level elsewhere on them. Once one is opening there, the planet level.
+        const held = holdsAt(message).topics;
+        const [shut] = SWAPS.container;
+        let most = fitScale(nodes.overview, PAD.overview, free) * 2 ** message.overview;
+        layers.containers.forEach((container, i) => {
+          const z = container.hub ? message.hub : message.level;
+          if (held[i] < 0.5 || !Number.isFinite(most)) return;
+          const top = (container.hub ? fitScale(nodes.hub, PAD.hub, free) : fit) * 2 ** shut;
+          most = Number.isFinite(z) && z <= shut + 1e-3 ? Math.min(most, top) : NaN;
+        });
+        if (Number.isFinite(most)) s = most;
+      }
+      apply({ x: message.x, y: message.y, r: message.r, s: clampScale(s) });
+      const settled = settleScale(cam.s, free.cx, free.cy, 0);  // a window of another shape can land in a swap
+      if (settled !== cam.s) apply({ x: cam.x, y: cam.y, r: cam.r, s: settled });
+      pinHere();  // as the window that sent it does; not posted back, so the windows do not echo each other
       aim = message.aim;
       if (aim !== focusId) setFocus(aim);
       render();
@@ -1037,7 +1723,7 @@
   addEventListener('resize', () => requestAnimationFrame(refit));
   narrowQuery.addEventListener?.('change', () => requestAnimationFrame(refit));
   // Fonts never move camera targets (they come from the build); only refit if nothing is flying.
-  document.fonts?.ready.then(() => { if (!world.classList.contains('moving')) refit(); });
+  document.fonts?.ready.then(() => { if (!flight && !wheelTo) refit(); });
   if (presenter && channel) {
     channel.postMessage({ type: 'hello', id: helloId });
     setTimeout(adoptReply, 600);

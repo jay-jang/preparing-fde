@@ -11,7 +11,7 @@
   --t0:#e3ece5;--t1:#e1eaf2;--t2:#dfede8;--t3:#ece5f1;--t4:#f4e8dc;--t5:#e9eedb;--t6:#e3e6f5;
   --fail:#b4483c;--accent:#c98a1b;--diagram-bg:#ffffff;
   --code-bg:#17241f;--code-ink:#e4ece5;--code-muted:#8fa79a;--code-out:#ffe7a3;--code-out-bg:rgba(255,215,120,.09);--code-key:#b9d77a;--code-str:#f1c98b;--code-num:#9fd3e6;
-  --chrome:rgba(252,250,244,.88);--chrome-line:rgba(31,43,39,.13);--chrome-ink:#1f2b27;
+  --chrome:rgba(252,250,244,.95);--chrome-line:rgba(31,43,39,.13);--chrome-ink:#1f2b27;
   --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
   color-scheme:light;
 }
@@ -22,7 +22,7 @@
   --c0:#7fc6a6;--c1:#82b4e0;--c2:#6cc8b6;--c3:#bc9ed6;--c4:#e1a06a;--c5:#adc96f;--c6:#9aa7f0;
   --t0:#15231e;--t1:#142131;--t2:#112320;--t3:#20192a;--t4:#271d14;--t5:#1a2213;--t6:#191d33;
   --fail:#e3877b;--accent:#e8b65a;--diagram-bg:#1f201f;
-  --code-bg:#0b1210;--chrome:rgba(17,25,23,.88);--chrome-line:rgba(227,235,230,.14);--chrome-ink:#e3ebe6;
+  --code-bg:#0b1210;--chrome:rgba(17,25,23,.95);--chrome-line:rgba(227,235,230,.14);--chrome-ink:#e3ebe6;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#0f1615;--paper-deep:#0b1110;--dot:rgba(190,215,200,.13);--ink:#e3ebe6;--ink-2:#b5c4bc;--ink-3:#84958c;
@@ -31,7 +31,7 @@
   --c0:#7fc6a6;--c1:#82b4e0;--c2:#6cc8b6;--c3:#bc9ed6;--c4:#e1a06a;--c5:#adc96f;--c6:#9aa7f0;
   --t0:#15231e;--t1:#142131;--t2:#112320;--t3:#20192a;--t4:#271d14;--t5:#1a2213;--t6:#191d33;
   --fail:#e3877b;--accent:#e8b65a;--diagram-bg:#1f201f;
-  --code-bg:#0b1210;--chrome:rgba(17,25,23,.88);--chrome-line:rgba(227,235,230,.14);--chrome-ink:#e3ebe6;
+  --code-bg:#0b1210;--chrome:rgba(17,25,23,.95);--chrome-line:rgba(227,235,230,.14);--chrome-ink:#e3ebe6;
   color-scheme:dark}
 .c0{--c:var(--c0);--t:var(--t0)}.c1{--c:var(--c1);--t:var(--t1)}.c2{--c:var(--c2);--t:var(--t2)}
 .c3{--c:var(--c3);--t:var(--t3)}.c4{--c:var(--c4);--t:var(--t4)}.c5{--c:var(--c5);--t:var(--t5)}.c6{--c:var(--c6);--t:var(--t6)}
@@ -55,8 +55,9 @@ kbd{font-family:var(--mono);font-size:.85em;padding:.05em .4em;border:1px solid 
 #stage.dragging{cursor:grabbing}
 #backdrop{position:absolute;inset:-30%;pointer-events:none;
   background-image:radial-gradient(circle,var(--dot) 1.1px,transparent 1.5px);background-size:40px 40px}
+/* Opacity and visibility of every level (routes, covers, bodies, dimming) are set per frame by reveal() in
+   atlas.js from the camera, so nothing in the world fades on a timer or carries a compositor-layer hint. */
 #world{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0}
-#world.moving{will-change:transform}
 
 /* ================================================================ orbit layer */
 .orbits{position:absolute;overflow:visible;pointer-events:none}
@@ -75,27 +76,21 @@ kbd{font-family:var(--mono);font-size:.85em;padding:.05em .4em;border:1px solid 
 .flow-text{font-size:760px;font-weight:800;dominant-baseline:middle;text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:150;stroke-linejoin:round}
 .flow-text.flow{fill:var(--c2)}.flow-text.platform{fill:var(--c3)}.flow-text.feedback{fill:var(--c4)}
 .part-text{font-size:720px;font-weight:800;fill:var(--ink-2);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:140}
-.route{opacity:0;transition:opacity .6s}
 .route polyline{fill:none;stroke:var(--accent);stroke-opacity:.6;stroke-width:60;stroke-dasharray:10 150;stroke-linecap:round;stroke-linejoin:round}
 .route rect{fill:var(--accent);stroke:var(--paper);stroke-width:70}
 .route{position:absolute;overflow:visible;pointer-events:none}
 .route text{font-size:740px;font-weight:800;fill:var(--paper);text-anchor:middle;dominant-baseline:central}
-body[data-depth="overview"]:not([data-step="closing"]) .route{opacity:.95}
-.hub-eyebrow,.spine-text{transition:opacity .5s}
-body[data-depth="overview"] :is(.hub-eyebrow,.spine-text){opacity:0}
 
 /* ================================================================ hub */
-.hub{position:absolute;border-radius:50%;text-align:center;transition:opacity .6s}
+.hub{position:absolute;border-radius:50%;text-align:center}
 .hub-title{position:absolute;left:1100px;top:1150px;width:9400px}
 .hub-eyebrow{margin:0 0 140px;font-size:230px;font-weight:800;letter-spacing:.14em;color:var(--c0)}
 .hub h1{margin:0;font-size:700px;line-height:1.1;font-weight:800;letter-spacing:-.03em}
 .hub h1 em{font-style:normal;color:var(--c0)}
-.hub-detail{position:absolute;left:1500px;top:3500px;width:8600px;transition:opacity .6s}
+.hub-detail{position:absolute;left:1500px;top:3500px;width:8600px}
 .hub-closing{position:absolute;left:1800px;top:1700px;width:8000px;margin:0;font-size:700px;line-height:1.16;text-wrap:balance;font-weight:800;
-  letter-spacing:-.03em;opacity:0;transition:opacity .6s}
+  letter-spacing:-.03em}
 .hub-closing em{font-style:normal;color:var(--c0)}
-body[data-step="closing"] .hub-closing{opacity:1}
-body[data-step="closing"] .hub-title,body[data-step="closing"] .hub .frame{opacity:0}
 .hub-question{margin:0;font-size:300px;line-height:1.42;font-weight:600;color:var(--ink-2)}
 .hub-case{margin:160px 0 0;font-size:380px;line-height:1.3;font-weight:600;color:var(--ink)}
 .hub-case span{display:inline-block;margin-right:90px;padding:20px 70px;border-radius:120px;background:var(--c0);color:var(--paper);
@@ -104,45 +99,38 @@ body[data-step="closing"] .hub-title,body[data-step="closing"] .hub .frame{opaci
 /* ================================================================ planets */
 .planet{position:absolute;border-radius:50%;
   background:radial-gradient(circle at 50% 42%,var(--planet) 0%,var(--planet) 58%,var(--t) 100%);
-  box-shadow:inset 0 0 0 80px color-mix(in srgb,var(--c) 55%,transparent);transition:opacity .6s}
+  box-shadow:inset 0 0 0 80px color-mix(in srgb,var(--c) 55%,transparent)}
 .planet::after{content:"";position:absolute;inset:260px;border-radius:50%;border:26px dashed color-mix(in srgb,var(--c) 30%,transparent);pointer-events:none}
 .planet-cover{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:150px;
-  text-align:center;pointer-events:none;transition:opacity .25s}
-.planet-cover>span:not(.outcome){text-shadow:0 0 90px var(--planet),0 0 180px var(--planet),0 0 260px var(--planet)}
-.pc-number,.pc-name{padding:0 260px;border-radius:900px;background:var(--planet)}
-body[data-depth="overview"]:not([data-step="closing"]) .pc-en{display:none}
+  text-align:center;pointer-events:none}
+/* Solid backing pills keep the labels clear of the route line (blurred text halos were costly to repaint). */
+.pc-number,.pc-name,.pc-en{padding:0 260px;border-radius:900px;background:var(--planet)}
 .pc-number{font-size:2300px;line-height:.9;font-weight:800;color:var(--c);letter-spacing:-.04em}
 .pc-name{max-width:12400px;font-size:930px;line-height:1.1;font-weight:800;letter-spacing:-.02em}
 .pc-en{font-size:560px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-.outcome{margin-top:120px;padding:160px 440px;border-radius:900px;background:var(--c);color:var(--paper);
-  font-size:780px;font-weight:800;opacity:0;transform:translateY(400px);transition:opacity .6s,transform .6s}
-body[data-step="closing"] .outcome{opacity:1;transform:none}
+/* The closing outcome hangs from the English name's slot, so the label column never changes height or moves. */
+.pc-tail{position:relative;display:flex;justify-content:center}
+.outcome{position:absolute;top:0;left:50%;width:max-content;max-width:13000px;padding:160px 440px;border-radius:900px;
+  background:var(--c);color:var(--paper);font-size:780px;font-weight:800;transform:translate(-50%,400px)}
 .outcome small{display:block;margin-top:40px;font-size:.6em;font-weight:600;opacity:.92}
-body[data-step="closing"] .pc-en{display:none}
 .planet-disc{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  border-radius:50%;background:var(--t);text-align:center;padding:300px;opacity:0;transition:opacity .55s}
+  border-radius:50%;background:var(--t);text-align:center;padding:300px}
 .pd-part{font-size:300px;font-weight:800;letter-spacing:.14em;color:var(--c)}
 .pd-number{margin-top:30px;font-size:560px;line-height:1;font-weight:800;color:var(--c)}
 .pd-name{margin:90px 0 0;font-size:420px;line-height:1.12;font-weight:800;letter-spacing:-.02em}
 .pd-en{display:none;margin:70px 0 0;font-size:170px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .pd-tagline{margin:100px 0 0;max-width:3600px;font-size:380px;line-height:1.38;color:var(--ink-2);text-wrap:balance}
 .pd-meta{margin:100px 0 0;font-size:300px;font-weight:600;color:var(--ink-3)}
-.planet-cover.is-open{opacity:0}
-.planet.is-open .planet-disc{opacity:1;transition:opacity .45s .2s}
 
 /* ================================================================ frames */
 .frame{position:absolute;border-radius:50%;background:var(--frame);
-  box-shadow:inset 0 0 0 30px color-mix(in srgb,var(--c) 70%,transparent),0 60px 160px var(--shadow);transition:opacity .55s}
-.planet:not(.is-open) .frame{opacity:.5;box-shadow:inset 0 0 0 30px color-mix(in srgb,var(--c) 70%,transparent)}
+  box-shadow:inset 0 0 0 30px color-mix(in srgb,var(--c) 70%,transparent)}
 .frame-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:90px;
-  padding:420px;text-align:center;pointer-events:none;opacity:0;transition:opacity .5s}
+  padding:420px;text-align:center;pointer-events:none}
 .cover-key{font-size:440px;line-height:1;font-weight:800;color:var(--c);letter-spacing:-.02em}
 .cover-label{font-size:420px;line-height:1.15;font-weight:800;max-width:3200px;text-wrap:balance}
 .cover-meta{font-size:300px;font-weight:600;color:var(--ink-3)}
-.planet.is-open .frame-cover,.hub.is-open .frame-cover{opacity:1;transition:opacity .45s .2s}
-.frame.is-current .frame-cover{opacity:0}
-.frame-body{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .4s,visibility 0s .4s}
-.frame.is-current .frame-body{opacity:1;visibility:visible;transition:opacity .6s .12s,visibility 0s}
+.frame-body{position:absolute;inset:0}
 .f-kicker{position:absolute;left:700px;top:660px;width:2600px;margin:0;display:flex;justify-content:center;align-items:center;gap:40px;
   font-size:88px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
 .f-key{padding:12px 34px;border-radius:60px;background:var(--c);color:var(--frame);letter-spacing:.04em}
@@ -158,12 +146,11 @@ body[data-step="closing"] .pc-en{display:none}
 
 /* ---------------------------------------------------------------- portals */
 .portal{position:absolute;margin:0;border-radius:22px;background:var(--portal);border:4px solid var(--line);
-  box-shadow:0 18px 50px var(--shadow);cursor:zoom-in;transition:opacity .45s,border-color .45s}
+  box-shadow:0 10px 0 var(--shadow);cursor:zoom-in;transition:border-color .2s}
 .portal:hover{border-color:var(--c)}
 .portal-inner{position:absolute;inset:0;padding:24px;overflow:hidden;border-radius:18px;display:flex;flex-direction:column;text-align:left}
 .portal-tag{position:absolute;z-index:1;left:12px;top:8px;padding:2px 8px;border-radius:8px;background:color-mix(in srgb,var(--portal) 85%,transparent);font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--c)}
 .portal:not(.is-focus) a{pointer-events:none}
-body[data-depth="detail"] .portal.is-focus figcaption{opacity:0}
 .portal figcaption{position:absolute;left:0;right:0;top:100%;margin-top:22px;text-align:center;font-size:62px;font-weight:800;
   letter-spacing:.1em;color:var(--c)}
 .portal-diagram .portal-inner{align-items:center;justify-content:center;background:var(--diagram-bg)}
@@ -195,30 +182,13 @@ body[data-depth="detail"] .portal.is-focus figcaption{opacity:0}
 .portal code{font-family:var(--mono);font-size:.92em}
 .portal .empty{margin:auto;font-size:30px;color:var(--ink-3)}
 
-/* ================================================================ focus and dimming */
-body:not([data-depth="overview"]) .planet:not(.is-open),
-body:not([data-depth="overview"]) .planet-cover:not(.is-open),
-body:not([data-depth="overview"]):not([data-depth="hub"]) .hub:not(.is-open){opacity:.28}
-body[data-depth="frame"] .is-open .frame:not(.is-current),
-body[data-depth="detail"] .is-open .frame:not(.is-current){opacity:.38}
-body[data-depth="detail"] .frame.is-current .portal:not(.is-focus){opacity:.28}
-body:is([data-depth="frame"],[data-depth="detail"]) .planet.is-open .planet-disc,
-body:is([data-depth="frame"],[data-depth="detail"]) .hub.is-open :is(.hub-title,.hub-detail){opacity:.22}
-.hub-title{transition:opacity .6s}
-body[data-depth="detail"] .frame.is-current :is(.f-kicker,.f-title,.f-message,.f-points,.f-foot){opacity:.4}
-body[data-depth="hub"] .hub-detail{opacity:1}
-.hub:not(.is-open) .hub-detail{opacity:0}
-.hub:not(.is-open) .frame{opacity:.6;box-shadow:inset 0 0 0 30px color-mix(in srgb,var(--c) 70%,transparent)}
-body[data-step="closing"] .part-2,body[data-step="closing"] .part-3{opacity:.25}
-body:not([data-depth="overview"]) .orbits{opacity:.75}
-
 /* ================================================================ chrome */
 .bar{position:fixed;z-index:20;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;
   padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));
   pointer-events:none;transition:opacity .4s,transform .4s}
 .bar>*{pointer-events:auto}
 .brand{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 9px;border-radius:999px;background:var(--chrome);
-  border:1px solid var(--chrome-line);backdrop-filter:blur(10px);font-size:13px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+  border:1px solid var(--chrome-line);font-size:13px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
 .brand svg{width:22px;height:22px;fill:none;stroke:var(--c0);stroke-width:1.8}
 .brand svg circle:last-child{fill:var(--c4);stroke:none}
 .crumbs{min-width:0;flex:1}
@@ -226,13 +196,13 @@ body:not([data-depth="overview"]) .orbits{opacity:.75}
 .crumbs li{display:flex;align-items:center;min-width:0;font-size:13px;color:var(--ink-2);white-space:nowrap}
 .crumbs li+li::before{content:"›";margin:0 6px;color:var(--ink-3)}
 .crumbs button{max-width:260px;overflow:hidden;text-overflow:ellipsis;padding:5px 10px;border:1px solid var(--chrome-line);border-radius:999px;
-  background:var(--chrome);backdrop-filter:blur(10px);cursor:pointer}
+  background:var(--chrome);cursor:pointer}
 .crumbs button:hover{background:var(--paper)}
 .crumbs li+li::before{text-shadow:0 0 6px var(--paper),0 0 2px var(--paper)}
 .crumbs li:last-child button{background:var(--chrome);border:1px solid var(--chrome-line);font-weight:800;color:var(--ink)}
 .crumbs .dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--c);vertical-align:1px}
 .bar-actions{display:flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--chrome);
-  border:1px solid var(--chrome-line);backdrop-filter:blur(10px)}
+  border:1px solid var(--chrome-line)}
 .bar-actions button,.bar-link{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:0;border-radius:999px;
   background:transparent;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;color:var(--chrome-ink)}
 .bar-actions button.icon{width:34px;padding:0;justify-content:center}
@@ -245,7 +215,7 @@ body:not([data-depth="overview"]) .orbits{opacity:.75}
 .bar-actions button[aria-expanded="true"] .path-minutes{color:inherit;opacity:.7}
 
 .path-menu{position:fixed;z-index:30;top:58px;right:max(16px,env(safe-area-inset-right));width:min(420px,calc(100vw - 32px));
-  padding:12px;border-radius:18px;background:var(--chrome);border:1px solid var(--chrome-line);backdrop-filter:blur(14px);
+  padding:12px;border-radius:18px;background:var(--chrome);border:1px solid var(--chrome-line);
   box-shadow:0 20px 50px var(--shadow)}
 .menu-heading{margin:4px 8px 10px;font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--ink-3)}
 .path-menu ul{margin:0;padding:0;list-style:none;display:grid;gap:4px}
@@ -259,7 +229,7 @@ body:not([data-depth="overview"]) .orbits{opacity:.75}
 
 .dock{position:fixed;z-index:20;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);
   display:flex;align-items:center;gap:4px;padding:5px;border-radius:999px;background:var(--chrome);border:1px solid var(--chrome-line);
-  backdrop-filter:blur(12px);box-shadow:0 12px 34px var(--shadow);transition:opacity .4s,transform .4s;max-width:calc(100vw - 32px)}
+  box-shadow:0 12px 34px var(--shadow);transition:opacity .4s,transform .4s;max-width:calc(100vw - 32px)}
 .dock button{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:50%;background:transparent;cursor:pointer;color:var(--chrome-ink)}
 .dock button:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 .dock button.next{background:var(--ink);color:var(--paper)}
@@ -273,6 +243,8 @@ body:not([data-depth="overview"]) .orbits{opacity:.75}
 .free-pill{position:fixed;z-index:20;left:50%;bottom:76px;transform:translateX(-50%);margin:0;padding:7px 14px;border-radius:999px;
   background:var(--ink);color:var(--paper);font-size:12px;font-weight:600;white-space:nowrap}
 .free-pill kbd{background:transparent;color:inherit;border-color:rgba(255,255,255,.35)}
+/* Chrome floats over the moving canvas on layers of its own, so a flight never repaints it. */
+.bar,.dock,.progress,.free-pill,.path-menu,#notes,#sheet{will-change:transform}
 body.idle .bar,body.idle .dock{opacity:0;pointer-events:none}
 body.idle .dock{transform:translate(-50%,20px)}
 body.idle #stage{cursor:none}
@@ -280,7 +252,7 @@ body.idle #stage{cursor:none}
 /* ---------------------------------------------------------------- notes */
 #notes{position:fixed;z-index:25;top:64px;right:max(16px,env(safe-area-inset-right));bottom:76px;width:min(460px,38vw);
   display:flex;flex-direction:column;border-radius:20px;background:var(--chrome);border:1px solid var(--chrome-line);
-  backdrop-filter:blur(16px);box-shadow:0 20px 50px var(--shadow);overflow:hidden}
+  box-shadow:0 20px 50px var(--shadow);overflow:hidden}
 .notes-head{padding:16px 18px 0;border-bottom:1px solid var(--chrome-line)}
 .notes-kicker{margin:0;font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase}
 .notes-title{margin:4px 0 10px;font-size:17px;line-height:1.35}

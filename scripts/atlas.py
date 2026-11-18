@@ -321,7 +321,7 @@ def cover_markup(number):
     return (f'<div class="planet-cover c{number} part-{planet["part"]}" id="cover-p{number}" aria-hidden="true" '
             f'style="{box_style(planet["at"][0], planet["at"][1], 2 * PLANET_R, 2 * PLANET_R, planet["rot"])}">'
             f'<span class="pc-number">{number:02d}</span><span class="pc-name">{escape(planet["name"])}</span>'
-            f'<span class="pc-en">{escape(planet["en"])}</span>{outcome}</div>')
+            f'<span class="pc-tail"><span class="pc-en">{escape(planet["en"])}</span>{outcome}</span></div>')
 
 
 def hub_markup(by_key):
